@@ -7,6 +7,9 @@ https://assetstore.unity.com/packages/templates/systems/mmorpg-kit-2d-3d-surviva
 The purpose of these scripts are to improve the rendering and behavior of Overhead UI.
 
 Instructions:
+- In your Assets folder (In CLI) do either:
+    - `git clone git@github.com:jwhenry3/mmorpg-kit-snippets.git`
+    - `git clone https://github.com/jwhenry3/mmorpg-kit-snippets.git`
 - Attach any of the scripts to the following Prefabs (or similarly created prefabs)
     - CanvasOwningCharacterUI
     - CanvasNonOwningCharacterUI
