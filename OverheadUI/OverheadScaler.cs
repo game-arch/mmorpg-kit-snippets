@@ -8,7 +8,7 @@ namespace OverheadUI
 {
     public class OverheadScaler : MonoBehaviour
     {
-        public float scale = 0.01f;
+        public float scale = 0.015f;
         private Vector3 lossyScale;
         private float verticalOffset = 0.1f;
 
