@@ -1,0 +1,8 @@
+{
+  "name": "com.jwhenry3.snippets",
+  "version": "1.0.0",
+  "displayName": "MMORPG Kit Snippets",
+  "description": "Utility scripts and components for the everyman.",
+  "unity": "2019.3",
+  "keywords": ["mmorpg", "kit", "jwhenry", "snippet", "suragata"]
+}
