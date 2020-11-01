@@ -15,6 +15,7 @@ namespace OverheadUI
         void Awake()
         {
             lossyScale = transform.lossyScale;
+            Resize(1);
         }
 
         void FixedUpdate()
