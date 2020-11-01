@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 
-public class OverheadScaler: MonoBehaviour
+public class OverheadScaler : MonoBehaviour
 {
     public float scale = 0.01f;
     private Vector3 lossyScale;
@@ -24,11 +24,11 @@ public class OverheadScaler: MonoBehaviour
     {
         transform.localScale = new Vector3(
             scale / lossyScale.x * distance,
-            scale / lossyScale.y  * distance,
+            scale / lossyScale.y * distance,
             scale / lossyScale.z
         );
         transform.localPosition = new Vector3(0, verticalOffset, 0);
     }
 
-   
+
 }

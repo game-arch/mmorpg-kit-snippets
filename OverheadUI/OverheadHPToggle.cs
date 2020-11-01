@@ -13,7 +13,7 @@ public class OverheadHPToggle : MonoBehaviour
         if (hpGauge.GetComponent<Image>().fillAmount == 1)
         {
             hpContainer.SetActive(false);
-        }  
+        }
         else
         {
             hpContainer.SetActive(true);
