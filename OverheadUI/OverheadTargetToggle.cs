@@ -11,10 +11,9 @@ namespace OverheadUI
         public UINpcEntity npc;
         public GameObject targetIndicator;
 
-        void FixedUpdate()
+        void OnGUI()
         {
-            BasePlayerCharacterEntity character = BasePlayerCharacterController.OwningCharacter;
-            BaseGameEntity target = character.GetTargetEntity();
+            BaseGameEntity target = BasePlayerCharacterController.Singleton.SelectedEntity;
             if (this.character)
                 targetIndicator.SetActive(target != null && target.ObjectId == this.character.Data.ObjectId);
             if (npc)
