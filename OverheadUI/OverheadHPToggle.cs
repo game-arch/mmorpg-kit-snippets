@@ -1,22 +1,25 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UI
 
-public class OverheadHPToggle : MonoBehaviour
+namespace OverheadUI
 {
-    public GameObject hpContainer;
-    public GameObject hpGauge;
-
-    void FixedUpdate()
+    public class OverheadHPToggle : MonoBehaviour
     {
-        if (hpGauge.GetComponent<Image>().fillAmount == 1)
+        public GameObject hpContainer;
+        public GameObject hpGauge;
+
+        void FixedUpdate()
         {
-            hpContainer.SetActive(false);
-        }
-        else
-        {
-            hpContainer.SetActive(true);
+            if (hpGauge.GetComponent<Image>().fillAmount == 1)
+            {
+                hpContainer.SetActive(false);
+            }
+            else
+            {
+                hpContainer.SetActive(true);
+            }
         }
     }
 }
