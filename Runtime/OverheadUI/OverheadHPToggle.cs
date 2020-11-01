@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI
+using UnityEngine.UI;
 
 namespace OverheadUI
 {
@@ -12,14 +12,7 @@ namespace OverheadUI
 
         void FixedUpdate()
         {
-            if (hpGauge.GetComponent<Image>().fillAmount == 1)
-            {
-                hpContainer.SetActive(false);
-            }
-            else
-            {
-                hpContainer.SetActive(true);
-            }
+            hpContainer.SetActive(hpGauge.GetComponent<Image>().fillAmount < 1);
         }
     }
 }
