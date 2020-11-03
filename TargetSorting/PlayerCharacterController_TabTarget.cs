@@ -89,6 +89,10 @@ namespace MultiplayerARPG
                 isFollowingTarget = false;
             }
         }
+        public virtual void Activate()
+        {
+            isFollowingTarget = true;
+        }
 
     }
 }

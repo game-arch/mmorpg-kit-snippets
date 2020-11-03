@@ -27,12 +27,21 @@ public class TabTargeting : MonoBehaviour
 
     public bool sortByDistance = true;
 
+    private bool TryGetButtonDown(string name)
+    {
+        if (InputManager.HasInputSetting(name))
+        {
+            return InputManager.GetButtonDown(name);
+        }
+        return false;
+    }
     private bool IsTargetButtonPressed()
     {
         return (
             Input.GetAxisRaw("TargetHorizontal") > 0.0f
             || Input.GetAxisRaw("TargetHorizontal") < 0.0f
             || Input.GetKeyDown(KeyCode.Tab)
+            || TryGetButtonDown("Activate")
             );
     }
     private bool IsTargetNextPressed()
@@ -53,18 +62,30 @@ public class TabTargeting : MonoBehaviour
         controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
     }
 
-    private float GetAngleOf(GameObject go, bool signed = false)
+    private float GetSortWeight(GameObject go, bool subsequent = false)
     {
-        Vector3 target_direction = go.transform.position - Camera.main.transform.position; //get vector from camera to target
+        Vector3 target_direction = go.transform.position - (subsequent ? Camera.main.transform.position : transform.position); //get vector from player to target
         var camera_forward = new Vector2(Camera.main.transform.forward.x, Camera.main.transform.forward.z); //convert camera forward direction into 2D vector
         var target_dir = new Vector2(target_direction.x, target_direction.z); //do the same with target direction
-        if (signed)
+        float angle = GetAngle(go, transform) - 90;
+        if (angle < 0)
+            angle = 1;
+
+        if (subsequent)
         {
-            return Vector2.SignedAngle(camera_forward, target_dir); //get the angle between the two vectors with higher being to the left and lower being to the right
+            return Vector2.SignedAngle(camera_forward, target_dir) * angle; //get the angle between the two vectors with higher being to the left and lower being to the right
         }
-        return Vector2.Angle(camera_forward, target_dir); //get the angle between the two vectors
+        return target_dir.magnitude * angle; //get the angle between the two vectors
     }
 
+    private float GetAngle(GameObject go, Transform transForm = null)
+    {
+        Transform origin = transForm ?? Camera.main.transform;
+        Vector3 target_direction = go.transform.position - origin.position; //get vector from player to target
+        var camera_forward = new Vector2(Camera.main.transform.forward.x, Camera.main.transform.forward.z); //convert camera forward direction into 2D vector
+        var target_dir = new Vector2(target_direction.x, target_direction.z); //do the same with target direction
+        return Vector2.Angle(camera_forward, target_dir); //get the angle between the two vectors with higher being to the left and lower being to the right
+    }
     private void SelectNextTarget(List<GameObject> list, bool right = true)
     {
         bool hasValidTarget = m_currentlySelectedTarget?.activeInHierarchy == true;
@@ -112,11 +133,16 @@ public class TabTargeting : MonoBehaviour
         {
             if (m_CandidateTargets.Count > 0)
             {
+                // On initial target, or if you hit the "confirm" button, choose the closest mob
+                if (m_currentlySelectedTarget != null && TryGetButtonDown("Activate"))
+                {
+                    controller.Activate();
+                }
                 if (m_currentlySelectedTarget == null)
                 {
                     TargetInitially();
                 }
-                else
+                else if (!TryGetButtonDown("Activate"))
                 {
                     TargetNextBasedOnDirection();
                 }
@@ -131,18 +157,7 @@ public class TabTargeting : MonoBehaviour
 
     private void TargetNextBasedOnDirection()
     {
-        List<GameObject> Sorted_List = m_CandidateTargets.OrderBy(go => GetAngleOf(go, m_currentlySelectedTarget != null)).ToList();
-        //store the objects based off of the angle into the Sorted_List
-
-        // Filter objects out if they are not within range of the angle
-        List<GameObject> objectsInView = new List<GameObject>();
-        for (var i = 0; i < Sorted_List.Count(); ++i)
-        {
-            if (GetAngleOf(Sorted_List[i]) < Camera.main.fieldOfView && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
-            {
-                objectsInView.Add(Sorted_List[i]);
-            }
-        }
+        List<GameObject> objectsInView = SortObjectsInView(true);
         if (objectsInView.Count > 0)
         {
             SelectNextTarget(objectsInView, IsTargetNextPressed());
@@ -151,21 +166,28 @@ public class TabTargeting : MonoBehaviour
 
     private void TargetInitially()
     {
-        List<GameObject> Sorted_List = m_CandidateTargets.OrderBy(go => (transform.position - go.transform.position).sqrMagnitude).ToList();
-        List<GameObject> objectsInView = new List<GameObject>();
-        for (var i = 0; i < Sorted_List.Count(); ++i)
-        {
-            if (GetAngleOf(Sorted_List[i]) < Camera.main.fieldOfView && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
-            {
-                objectsInView.Add(Sorted_List[i]);
-            }
-        }
+        List<GameObject> objectsInView = SortObjectsInView(false);
 
         if (objectsInView.Count > 0)
         {
             Target(objectsInView.First());
             m_currentlySelectedTarget = objectsInView.First();
         }
+    }
+
+    private List<GameObject> SortObjectsInView(bool subsequent = false)
+    {
+        List<GameObject> Sorted_List = m_CandidateTargets.OrderBy(go => GetSortWeight(go, subsequent)).ToList();
+        List<GameObject> objectsInView = new List<GameObject>();
+        for (var i = 0; i < Sorted_List.Count(); ++i)
+        {
+            if (GetAngle(Sorted_List[i]) < Camera.main.fieldOfView && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
+            {
+                objectsInView.Add(Sorted_List[i]);
+            }
+        }
+
+        return objectsInView;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -216,7 +238,7 @@ public class TabTargeting : MonoBehaviour
 
             if (agent != null)
             {
-                if (controller.PlayerCharacterEntity.GetTargetEntity() == agent)
+                if (controller.SelectedEntity == agent)
                 {
                     controller.HandleTargetChange(null);
                 }
