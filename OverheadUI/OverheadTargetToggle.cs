@@ -9,6 +9,7 @@ namespace OverheadUI
     {
         public UICharacterEntity character;
         public UINpcEntity npc;
+        public UIHarvestableEntity harvestable;
         public GameObject targetIndicator;
         public GameObject subTargetIndicator;
         public string targetedLayer = "TargetedUI";
@@ -21,15 +22,20 @@ namespace OverheadUI
             {
                 BaseGameEntity target = controller.SelectedEntity;
                 BaseGameEntity subTarget = controller.subTarget;
-                if (this.character)
+                if (character)
                 {
-                    subTargetIndicator.SetActive(subTarget != null && subTarget.ObjectId == this.character.Data.ObjectId);
-                    targetIndicator.SetActive(target != null && target.ObjectId == this.character.Data.ObjectId);
+                    subTargetIndicator.SetActive(subTarget != null && subTarget.ObjectId == character.Data.ObjectId);
+                    targetIndicator.SetActive(target != null && target.ObjectId == character.Data.ObjectId);
                 }
                 if (npc)
                 {
                     subTargetIndicator.SetActive(subTarget != null && subTarget.ObjectId == npc.Data.ObjectId);
                     targetIndicator.SetActive(target != null && target.ObjectId == npc.Data.ObjectId);
+                }
+                if (harvestable)
+                {
+                    subTargetIndicator.SetActive(subTarget != null && subTarget.ObjectId == harvestable.Data.ObjectId);
+                    targetIndicator.SetActive(target != null && target.ObjectId == harvestable.Data.ObjectId);
                 }
                 gameObject.layer = LayerMask.NameToLayer(targetIndicator.activeSelf || subTargetIndicator.activeSelf ? targetedLayer : defaultLayer);
             }
