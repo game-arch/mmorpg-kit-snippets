@@ -19,6 +19,7 @@ Instructions:
 ### Tab Targeting
 The purpose of these scripts are to improve tab targeting
 Instructions:
+- In the extended PlayerCharacterController, remember to remove the `Input.GetButtonDown("FindEnemy")` handling, as this will replace it
 - In your overwritten PlayerCharacterController, add the following:
     ```
     public override void UpdateInput() {
@@ -27,6 +28,7 @@ Instructions:
         {
             UpdateSelectedTarget();
             Targeting.HandleTargeting();
+            // Remove the Input.GetButtonDown("FindEnemy") check and execution!
             // some more logic
         }
         // the rest of the logic
