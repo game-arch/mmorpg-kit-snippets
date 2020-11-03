@@ -101,9 +101,9 @@ public class TabTargeting : MonoBehaviour
                 m_CandidateTargets.RemoveAt(i);
             }
         }
-        if (controller.SelectedEntity?.gameObject != null && controller.SelectedEntity?.gameObject == m_currentlySelectedTarget && Input.GetKeyDown(KeyCode.Escape))
+        if (controller.SelectedEntity?.gameObject != null && controller.SelectedEntity != null && Input.GetKeyDown(KeyCode.Escape))
         {
-            UnTarget(m_currentlySelectedTarget);
+            UnTarget(controller.SelectedEntity.gameObject);
             m_currentlySelectedTarget = null;
             return;
         }

@@ -80,11 +80,13 @@ namespace MultiplayerARPG
                 else
                 {
                     SetTarget(null, TargetActionType.Attack);
+                    isFollowingTarget = false;
                 }
             }
             else
             {
                 SetTarget(null, TargetActionType.Attack);
+                isFollowingTarget = false;
             }
         }
 
