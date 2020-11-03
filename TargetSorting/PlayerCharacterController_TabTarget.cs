@@ -4,8 +4,11 @@ using UnityEngine;
 
 namespace MultiplayerARPG
 {
+
     public partial class PlayerCharacterController : BasePlayerCharacterController
     {
+        public LayerMask TabTargetIgnoreLayers;
+
         protected TabTargeting _targeting;
 
         protected TabTargeting Targeting

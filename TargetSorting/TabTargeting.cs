@@ -21,13 +21,13 @@ public class TabTargeting : MonoBehaviour
 {
 
     [HideInInspector] public GameObject m_currentlySelectedTarget; //object your targeting
-    private readonly List<GameObject> m_CandidateTargets = new List<GameObject>(); //list of candidate game objects
+    protected readonly List<GameObject> m_CandidateTargets = new List<GameObject>(); //list of candidate game objects
     PlayerCharacterController controller;
     new SphereCollider collider;
 
     public bool sortByDistance = true;
 
-    private bool TryGetButtonDown(string name)
+    protected virtual bool TryGetButtonDown(string name)
     {
         if (InputManager.HasInputSetting(name))
         {
@@ -35,7 +35,7 @@ public class TabTargeting : MonoBehaviour
         }
         return false;
     }
-    private bool IsTargetButtonPressed()
+    protected virtual bool IsTargetButtonPressed()
     {
         return (
             Input.GetAxisRaw("TargetHorizontal") > 0.0f
@@ -44,16 +44,16 @@ public class TabTargeting : MonoBehaviour
             || TryGetButtonDown("Activate")
             );
     }
-    private bool IsTargetNextPressed()
+    protected virtual bool IsTargetNextPressed()
     {
         return (Input.GetAxisRaw("TargetHorizontal") > 0.0f || (Input.GetKeyDown(KeyCode.Tab) && !Input.GetKey(KeyCode.LeftShift)));
     }
-    private bool IsTargetPreviousPressed()
+    protected virtual bool IsTargetPreviousPressed()
     {
         return (Input.GetAxisRaw("TargetHorizontal") < 0.0f || (Input.GetKeyDown(KeyCode.Tab) && Input.GetKey(KeyCode.LeftShift)));
     }
 
-    private void Start()
+    protected virtual void Start()
     {
         gameObject.transform.localPosition = new Vector3(0, 0, 0);
         collider = gameObject.AddComponent<SphereCollider>();
@@ -62,23 +62,44 @@ public class TabTargeting : MonoBehaviour
         controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
     }
 
-    private float GetSortWeight(GameObject go, bool subsequent = false)
+    protected virtual float GetDistanceWeight(GameObject go)
     {
-        Vector3 target_direction = go.transform.position - (subsequent ? Camera.main.transform.position : transform.position); //get vector from player to target
-        var camera_forward = new Vector2(Camera.main.transform.forward.x, Camera.main.transform.forward.z); //convert camera forward direction into 2D vector
-        var target_dir = new Vector2(target_direction.x, target_direction.z); //do the same with target direction
-        float angle = GetAngle(go, transform) - 90;
-        if (angle < 0)
-            angle = 1;
-
-        if (subsequent)
-        {
-            return Vector2.SignedAngle(camera_forward, target_dir) * angle; //get the angle between the two vectors with higher being to the left and lower being to the right
-        }
-        return target_dir.magnitude * angle; //get the angle between the two vectors
+        float distance = (go.transform.position - transform.position).magnitude;
+        if (distance > 40)
+            return distance * 16;
+        if (distance > 20)
+            return distance * 8;
+        if (distance > 10)
+            return distance * 4;
+        return distance;
     }
 
-    private float GetAngle(GameObject go, Transform transForm = null)
+    protected virtual float GetAngleWeight(GameObject go)
+    {
+
+        float angle = GetAngle(go);
+        if (angle > 120)
+            return angle * 48;
+        if (angle > 90)
+            return angle * 32;
+        if (angle > Camera.main.fieldOfView)
+            return angle * 16;
+        return angle;
+    }
+
+    protected virtual float GetSortWeight(GameObject go, bool subsequent = false)
+    {
+        Vector3 target_direction = go.transform.position - transform.position; //get vector from player to target
+        var camera_forward = new Vector2(Camera.main.transform.forward.x, Camera.main.transform.forward.z); //convert camera forward direction into 2D vector
+        var target_dir = new Vector2(target_direction.x, target_direction.z); //do the same with target direction
+        if (subsequent)
+        {
+            return Vector2.SignedAngle(camera_forward, target_dir) - GetDistanceWeight(go); //get the angle between the two vectors with higher being to the left and lower being to the right
+        }
+        return GetDistanceWeight(go) + GetAngleWeight(go); //get the angle between the two vectors
+    }
+
+    protected virtual float GetAngle(GameObject go, Transform transForm = null)
     {
         Transform origin = transForm ?? Camera.main.transform;
         Vector3 target_direction = go.transform.position - origin.position; //get vector from player to target
@@ -86,7 +107,7 @@ public class TabTargeting : MonoBehaviour
         var target_dir = new Vector2(target_direction.x, target_direction.z); //do the same with target direction
         return Vector2.Angle(camera_forward, target_dir); //get the angle between the two vectors with higher being to the left and lower being to the right
     }
-    private void SelectNextTarget(List<GameObject> list, bool right = true)
+    protected virtual void SelectNextTarget(List<GameObject> list, bool right = true)
     {
         bool hasValidTarget = m_currentlySelectedTarget?.activeInHierarchy == true;
         int index = hasValidTarget ? list.IndexOf(m_currentlySelectedTarget) : -1;
@@ -155,7 +176,7 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    private void TargetNextBasedOnDirection()
+    protected virtual void TargetNextBasedOnDirection()
     {
         List<GameObject> objectsInView = SortObjectsInView(true);
         if (objectsInView.Count > 0)
@@ -164,7 +185,7 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    private void TargetInitially()
+    protected virtual void TargetInitially()
     {
         List<GameObject> objectsInView = SortObjectsInView(false);
 
@@ -175,22 +196,27 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    private List<GameObject> SortObjectsInView(bool subsequent = false)
+    protected virtual List<GameObject> SortObjectsInView(bool subsequent = false)
     {
         List<GameObject> Sorted_List = m_CandidateTargets.OrderBy(go => GetSortWeight(go, subsequent)).ToList();
         List<GameObject> objectsInView = new List<GameObject>();
         for (var i = 0; i < Sorted_List.Count(); ++i)
         {
-            if (GetAngle(Sorted_List[i]) < Camera.main.fieldOfView && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
+            RaycastHit hit;
+            Physics.Linecast(transform.position, Sorted_List[i].transform.position, out hit, ~controller.TabTargetIgnoreLayers);
+            if (hit.transform == Sorted_List[i].transform)
             {
-                objectsInView.Add(Sorted_List[i]);
+                if (GetAngle(Sorted_List[i]) < Camera.main.fieldOfView * 1.2 && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
+                {
+                    objectsInView.Add(Sorted_List[i]);
+                }
             }
         }
 
         return objectsInView;
     }
 
-    private void OnTriggerEnter(Collider other)
+    protected virtual void OnTriggerEnter(Collider other)
     {
         if (other.tag == "MonsterTag" || other.tag == "HarvestableTag" || other.tag == "NpcTag")
         {
@@ -201,7 +227,7 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    private void OnTriggerExit(Collider other)
+    protected virtual void OnTriggerExit(Collider other)
     {
         if (m_CandidateTargets.IndexOf(other.gameObject) != -1)
         {
@@ -209,9 +235,8 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    #region Private
 
-    private void Target(GameObject enemy)
+    protected virtual void Target(GameObject enemy)
     {
         if (enemy != null)
         {
@@ -230,7 +255,7 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    private void UnTarget(GameObject enemy)
+    protected virtual void UnTarget(GameObject enemy)
     {
         if (enemy != null)
         {
@@ -252,12 +277,11 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    private void AgentDies(BaseGameEntity agent)
+    protected virtual void AgentDies(BaseGameEntity agent)
     {
         m_CandidateTargets.Remove(agent.gameObject.gameObject);
         UnTarget(agent.gameObject);
         m_currentlySelectedTarget = null;
     }
 
-    #endregion
 }
