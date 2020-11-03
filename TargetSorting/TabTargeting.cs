@@ -7,7 +7,7 @@
  *         range of the camera collider, then targeting is broken free,
  *         if the camera gets out of range, then it also breaks free
  *         You can also cycle targets with the left and right arrow
- *         key within the m_Angle range
+ *         key within the Camera.main.fieldOfView range
  *         
 */
 /*******************************************************************/
@@ -19,11 +19,10 @@ using MultiplayerARPG;
 
 public class TabTargeting : MonoBehaviour
 {
-    public float m_Angle = 35.0f; //default for angle variable
 
     [HideInInspector] public GameObject m_currentlySelectedTarget; //object your targeting
     private readonly List<GameObject> m_CandidateTargets = new List<GameObject>(); //list of candidate game objects
-    BasePlayerCharacterController controller;
+    PlayerCharacterController controller;
     new SphereCollider collider;
 
     public bool sortByDistance = true;
@@ -51,7 +50,7 @@ public class TabTargeting : MonoBehaviour
         collider = gameObject.AddComponent<SphereCollider>();
         collider.radius = 30f;
         collider.isTrigger = true;
-        controller = BasePlayerCharacterController.Singleton;
+        controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
     }
 
     private float GetAngleOf(GameObject go, bool signed = false)
@@ -79,7 +78,6 @@ public class TabTargeting : MonoBehaviour
         {
             index = index - 1 > 0 ? index - 1 : list.Count - 1;
         }
-        Debug.Log("Next Target Index: " + index);
         if (m_currentlySelectedTarget != null)
         {
             UnTarget(m_currentlySelectedTarget);
@@ -92,15 +90,14 @@ public class TabTargeting : MonoBehaviour
     {
         if (controller == null)
         {
-            controller = BasePlayerCharacterController.Singleton;
+            controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
         }
-        //remove null objects in the list and decrement the counter
+        // remove null objects in the list and decrement the counter
         // Could optimize through some onDelete event system, probably really not worth
         for (int i = m_CandidateTargets.Count - 1; i >= 0; --i)
         {
             if (m_CandidateTargets[i] == null || !m_CandidateTargets[i].activeInHierarchy)
             {
-                Debug.Log("Entity Not Active: " + m_CandidateTargets[i]);
                 m_CandidateTargets.RemoveAt(i);
             }
         }
@@ -113,7 +110,6 @@ public class TabTargeting : MonoBehaviour
         //if I am targeting, there are candidate objects within my radius, and current target is not null and the object is alive aka in the scene
         if (IsTargetButtonPressed())
         {
-            Debug.Log("Target Next Please");
             if (m_CandidateTargets.Count > 0)
             {
                 if (m_currentlySelectedTarget == null)
@@ -142,12 +138,11 @@ public class TabTargeting : MonoBehaviour
         List<GameObject> objectsInView = new List<GameObject>();
         for (var i = 0; i < Sorted_List.Count(); ++i)
         {
-            if (GetAngleOf(Sorted_List[i]) < m_Angle && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
+            if (GetAngleOf(Sorted_List[i]) < Camera.main.fieldOfView && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
             {
                 objectsInView.Add(Sorted_List[i]);
             }
         }
-        Debug.Log("Objects In View: " + objectsInView.Count);
         if (objectsInView.Count > 0)
         {
             SelectNextTarget(objectsInView, IsTargetNextPressed());
@@ -160,13 +155,12 @@ public class TabTargeting : MonoBehaviour
         List<GameObject> objectsInView = new List<GameObject>();
         for (var i = 0; i < Sorted_List.Count(); ++i)
         {
-            if (GetAngleOf(Sorted_List[i]) < m_Angle && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
+            if (GetAngleOf(Sorted_List[i]) < Camera.main.fieldOfView && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
             {
                 objectsInView.Add(Sorted_List[i]);
             }
         }
 
-        Debug.Log("Objects In View: " + objectsInView.Count);
         if (objectsInView.Count > 0)
         {
             Target(objectsInView.First());
@@ -180,7 +174,6 @@ public class TabTargeting : MonoBehaviour
         {
             if (other.gameObject.activeInHierarchy)
             {
-                Debug.Log("Added Entity: " + other.name);
                 m_CandidateTargets.Add(other.gameObject);
             }
         }
@@ -190,7 +183,6 @@ public class TabTargeting : MonoBehaviour
     {
         if (m_CandidateTargets.IndexOf(other.gameObject) != -1)
         {
-            Debug.Log("Removed Entity: " + other.name);
             m_CandidateTargets.Remove(other.gameObject);
         }
     }
@@ -199,14 +191,13 @@ public class TabTargeting : MonoBehaviour
 
     private void Target(GameObject enemy)
     {
-        Debug.Log("Targetting " + enemy);
         if (enemy != null)
         {
             BaseGameEntity agent = enemy.GetComponentInParent<BaseGameEntity>();
 
             if (agent != null)
             {
-                controller.PlayerCharacterEntity.SetTargetEntity(agent);
+                controller.HandleTargetChange(agent.transform);
                 if (agent is BaseCharacterEntity)
                 {
                     BaseCharacterEntity character = agent as BaseCharacterEntity;
@@ -227,7 +218,7 @@ public class TabTargeting : MonoBehaviour
             {
                 if (controller.PlayerCharacterEntity.GetTargetEntity() == agent)
                 {
-                    controller.PlayerCharacterEntity.SetTargetEntity(null);
+                    controller.HandleTargetChange(null);
                 }
                 if (agent is BaseCharacterEntity)
                 {
