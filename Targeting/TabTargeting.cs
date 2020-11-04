@@ -87,14 +87,12 @@ public class TabTargeting : MonoBehaviour
         return angle;
     }
 
-    protected virtual float GetSortWeight(GameObject go, bool subsequent = false)
+    protected virtual float GetSortWeight(GameObject go, bool cycling = false)
     {
-        Vector3 target_direction = go.transform.position - transform.position; //get vector from player to target
-        var camera_forward = new Vector2(Camera.main.transform.forward.x, Camera.main.transform.forward.z); //convert camera forward direction into 2D vector
-        var target_dir = new Vector2(target_direction.x, target_direction.z); //do the same with target direction
-        if (subsequent)
+        if (cycling)
         {
-            return Vector2.SignedAngle(camera_forward, target_dir) - GetDistanceWeight(go); //get the angle between the two vectors with higher being to the left and lower being to the right
+            Vector2 screenPosition = Camera.main.WorldToScreenPoint(go.transform.position);
+            return screenPosition.x; //get the angle between the two vectors with higher being to the left and lower being to the right
         }
         return GetDistanceWeight(go) + GetAngleWeight(go); //get the angle between the two vectors
     }
@@ -112,7 +110,7 @@ public class TabTargeting : MonoBehaviour
         bool hasValidTarget = m_currentlySelectedTarget?.activeInHierarchy == true;
         int index = hasValidTarget ? list.IndexOf(m_currentlySelectedTarget) : -1;
         index = index > -1 && index < list.Count ? index : 0;
-        if (!right)
+        if (right)
         {
             index = index + 1 < list.Count ? index + 1 : 0;
         }
@@ -143,10 +141,9 @@ public class TabTargeting : MonoBehaviour
                 m_CandidateTargets.RemoveAt(i);
             }
         }
-        if (controller.SelectedEntity?.gameObject != null && controller.SelectedEntity != null && Input.GetKeyDown(KeyCode.Escape))
+        if (controller.SelectedEntity?.gameObject != null && controller.SelectedEntity != null && Input.GetKeyUp(KeyCode.Escape) && !controller.uisOpen)
         {
             UnTarget(controller.SelectedEntity.gameObject);
-            m_currentlySelectedTarget = null;
             return;
         }
         //if I am targeting, there are candidate objects within my radius, and current target is not null and the object is alive aka in the scene
@@ -155,15 +152,14 @@ public class TabTargeting : MonoBehaviour
             if (m_CandidateTargets.Count > 0)
             {
                 // On initial target, or if you hit the "confirm" button, choose the closest mob
-                if (m_currentlySelectedTarget != null && TryGetButtonDown("Activate"))
+                if (TryGetButtonDown("Activate"))
                 {
-                    controller.Activate();
+                    if (m_currentlySelectedTarget == null)
+                        TargetClosest();
+                    else
+                        controller.Activate();
                 }
-                if (m_currentlySelectedTarget == null)
-                {
-                    TargetInitially();
-                }
-                else if (!TryGetButtonDown("Activate"))
+                else
                 {
                     TargetNextBasedOnDirection();
                 }
@@ -185,7 +181,7 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    protected virtual void TargetInitially()
+    protected virtual void TargetClosest()
     {
         List<GameObject> objectsInView = SortObjectsInView(false);
 
@@ -196,20 +192,17 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    protected virtual List<GameObject> SortObjectsInView(bool subsequent = false)
+    protected virtual List<GameObject> SortObjectsInView(bool cycling = false)
     {
-        List<GameObject> Sorted_List = m_CandidateTargets.OrderBy(go => GetSortWeight(go, subsequent)).ToList();
+        List<GameObject> Sorted_List = m_CandidateTargets.OrderBy(go => GetSortWeight(go, cycling)).ToList();
         List<GameObject> objectsInView = new List<GameObject>();
+
         for (var i = 0; i < Sorted_List.Count(); ++i)
         {
-            RaycastHit hit;
-            Physics.Linecast(transform.position, Sorted_List[i].transform.position, out hit, ~controller.TabTargetIgnoreLayers);
-            if (hit.transform == Sorted_List[i].transform)
+            Vector2 screenPosition = Camera.main.WorldToScreenPoint(Sorted_List[i].transform.position);
+            if (screenPosition.x > 0 && screenPosition.x < Screen.width && screenPosition.y > 0 && screenPosition.y < Screen.height && Sorted_List[i].activeInHierarchy)
             {
-                if (GetAngle(Sorted_List[i]) < Camera.main.fieldOfView * 1.2 && m_CandidateTargets.IndexOf(Sorted_List[i]) != -1 && m_CandidateTargets[i].activeInHierarchy)
-                {
-                    objectsInView.Add(Sorted_List[i]);
-                }
+                objectsInView.Add(Sorted_List[i]);
             }
         }
 
@@ -236,7 +229,7 @@ public class TabTargeting : MonoBehaviour
     }
 
 
-    protected virtual void Target(GameObject enemy)
+    public virtual void Target(GameObject enemy)
     {
         if (enemy != null)
         {
@@ -255,7 +248,7 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    protected virtual void UnTarget(GameObject enemy)
+    public virtual void UnTarget(GameObject enemy)
     {
         if (enemy != null)
         {
@@ -273,6 +266,10 @@ public class TabTargeting : MonoBehaviour
                     character.OnUnTargeted(GetComponent<BaseCharacterEntity>());
                     character.CharacterDied.RemoveListener(AgentDies);
                 }
+                if (m_currentlySelectedTarget == enemy)
+                {
+                    m_currentlySelectedTarget = null;
+                }
             }
         }
     }
@@ -281,7 +278,6 @@ public class TabTargeting : MonoBehaviour
     {
         m_CandidateTargets.Remove(agent.gameObject.gameObject);
         UnTarget(agent.gameObject);
-        m_currentlySelectedTarget = null;
     }
 
 }

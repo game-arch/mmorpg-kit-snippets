@@ -21,7 +21,6 @@ namespace MultiplayerARPG
         public override void OnSetup()
         {
             base.OnSetup();
-            Debug.Log(CurrentGameInstance.harvestableUI);
             if (CurrentGameInstance.harvestableUI != null)
                 InstantiateUI(CurrentGameInstance.harvestableUI);
         }
@@ -35,7 +34,6 @@ namespace MultiplayerARPG
             uiHarvestableEntity = Instantiate(prefab, UIElementTransform);
             uiHarvestableEntity.transform.localPosition = Vector3.zero;
             uiHarvestableEntity.Data = this;
-            Debug.Log(uiHarvestableEntity);
         }
     }
 }

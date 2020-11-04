@@ -7,11 +7,12 @@ namespace MultiplayerARPG
 
     public partial class PlayerCharacterController : BasePlayerCharacterController
     {
+        public bool uisOpen;
         public LayerMask TabTargetIgnoreLayers;
 
         protected TabTargeting _targeting;
 
-        protected TabTargeting Targeting
+        public TabTargeting Targeting
         {
             get
             {
