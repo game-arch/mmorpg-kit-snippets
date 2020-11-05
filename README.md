@@ -3,6 +3,9 @@ Utility scripts and components for the everyman.
 Developed for:
 https://assetstore.unity.com/packages/templates/systems/mmorpg-kit-2d-3d-survival-110188
 
+If you would like to make a donation to support this effort:
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=C9W7CRZFJQEDA&currency_code=USD)
+
 ### Overhead UI
 The purpose of these scripts are to improve the rendering and behavior of Overhead UI.
 
