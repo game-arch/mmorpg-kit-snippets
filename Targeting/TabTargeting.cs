@@ -40,11 +40,10 @@ public class TabTargeting : MonoBehaviour
     }
 
     protected bool targeting;
-    void FixedUpdate()
+    void LateUpdate()
     {
         if (targetRecticle)
         {
-            Debug.Log(m_currentlySelectedTarget);
             if (m_currentlySelectedTarget != null)
             {
                 targeting = true;
@@ -55,7 +54,6 @@ public class TabTargeting : MonoBehaviour
             }
             else
             {
-                Debug.Log("NULL!");
                 if (targetRecticle.transform.GetChild(0).gameObject.activeSelf)
                     targetRecticle.transform.GetChild(0).gameObject.SetActive(false);
                 if (targeting == false)
@@ -331,7 +329,6 @@ public class TabTargeting : MonoBehaviour
                     if (deselect)
                     {
                         m_currentlySelectedTarget = null;
-                        Debug.Log("Set Targeting to False");
                         targeting = false;
                     }
                     recticleMoveTime = 0;

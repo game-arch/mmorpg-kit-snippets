@@ -6,9 +6,9 @@ using UnityEngine.Video;
 using System.Linq;
 using System.Collections.Generic;
 
-[RequireComponent(typeof(TabTargeting))]
 public class TightenedPlayerController : PlayerCharacterController
 {
+
     protected override void OnUseSkillOnEntity()
     {
         subTarget = SelectedEntity;
@@ -31,10 +31,12 @@ public class TightenedPlayerController : PlayerCharacterController
         ClearQueuedSkillIfInSafeZone();
         InheritedUpdateInput();
     }
+
     protected override void OnPointClickOnGround(Vector3 targetPosition)
     {
+        Debug.Log("clicked on ground!");
         // Disable click to move
-        Targeting.m_currentlySelectedTarget = null;
+        Targeting.UnTarget(Targeting.SelectedTarget);
     }
 
     public virtual void InheritedUpdateInput()
@@ -101,7 +103,6 @@ public class TightenedPlayerController : PlayerCharacterController
         // Set sprinting state
         PlayerCharacterEntity.SetExtraMovement(isSprinting ? ExtraMovementState.IsSprinting : ExtraMovementState.None);
     }
-
 
     protected virtual void PickUpItem()
     {

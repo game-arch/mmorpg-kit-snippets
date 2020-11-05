@@ -42,7 +42,7 @@ namespace MultiplayerARPG
                 UIOrdering lastUi = orderedUIs.Last();
                 if (lastUi.uiType.ToLower() == "target")
                 {
-                    Controller.Targeting.UnTarget(Controller.Targeting.m_currentlySelectedTarget);
+                    Controller.Targeting.UnTarget(Controller.Targeting.SelectedTarget);
                 }
                 lastUi.Hide();
                 Debug.Log(lastUi.name + " was closed!");

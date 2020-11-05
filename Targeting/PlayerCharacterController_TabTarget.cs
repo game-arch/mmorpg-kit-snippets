@@ -28,13 +28,18 @@ namespace MultiplayerARPG
             {
                 if (!_targeting)
                 {
-                    GameObject go = new GameObject();
-                    _targeting = go.AddComponent<TabTargeting>();
-                    go.transform.SetParent(BasePlayerCharacterController.OwningCharacter.gameObject.transform);
+                    _targeting = BasePlayerCharacterController.OwningCharacter.gameObject.GetComponentInChildren<TabTargeting>();
+                    if (!_targeting)
+                    {
+                        GameObject go = new GameObject();
+                        _targeting = go.AddComponent<TabTargeting>();
+                        go.transform.SetParent(BasePlayerCharacterController.OwningCharacter.gameObject.transform);
+                    }
                 }
                 return _targeting;
             }
         }
+
         protected virtual void UpdateSelectedTarget()
         {
             if (SelectedEntity?.gameObject != null && SelectedEntity.gameObject != Targeting.SelectedTarget)
@@ -43,6 +48,7 @@ namespace MultiplayerARPG
                 Targeting.Target(SelectedEntity.gameObject);
             }
         }
+
         public virtual void HandleTargetChange(Transform tempTransform)
         {
             if (tempTransform)
