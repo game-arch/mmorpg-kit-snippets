@@ -7,8 +7,18 @@ namespace MultiplayerARPG
 
     public partial class PlayerCharacterController : BasePlayerCharacterController
     {
+
+        public GameObject recticle;
         public bool uisOpen;
         public LayerMask TabTargetIgnoreLayers;
+
+        public float TargetDistance
+        {
+            get
+            {
+                return lockAttackTargetDistance;
+            }
+        }
 
         protected TabTargeting _targeting;
 
@@ -27,9 +37,10 @@ namespace MultiplayerARPG
         }
         protected virtual void UpdateSelectedTarget()
         {
-            if (SelectedEntity != null && SelectedEntity != Targeting.m_currentlySelectedTarget)
+            if (SelectedEntity?.gameObject != null && SelectedEntity.gameObject != Targeting.SelectedTarget)
             {
-                Targeting.m_currentlySelectedTarget = SelectedEntity.gameObject;
+                Targeting.UnTarget(Targeting.SelectedTarget, false);
+                Targeting.Target(SelectedEntity.gameObject);
             }
         }
         public virtual void HandleTargetChange(Transform tempTransform)

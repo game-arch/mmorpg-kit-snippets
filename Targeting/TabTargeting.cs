@@ -20,7 +20,7 @@ using MultiplayerARPG;
 public class TabTargeting : MonoBehaviour
 {
 
-    [HideInInspector] public GameObject m_currentlySelectedTarget; //object your targeting
+    protected GameObject m_currentlySelectedTarget; //object your targeting
     protected readonly List<GameObject> m_CandidateTargets = new List<GameObject>(); //list of candidate game objects
     PlayerCharacterController controller;
     new SphereCollider collider;
@@ -28,6 +28,41 @@ public class TabTargeting : MonoBehaviour
     public bool sortByDistance = true;
 
     protected GameObject targetRecticle;
+    protected float recticleMoveTime = 0f;
+    protected float recticleFinishTime = 0.5f;
+
+    public GameObject SelectedTarget
+    {
+        get
+        {
+            return m_currentlySelectedTarget;
+        }
+    }
+
+    protected bool targeting;
+    void FixedUpdate()
+    {
+        if (targetRecticle)
+        {
+            Debug.Log(m_currentlySelectedTarget);
+            if (m_currentlySelectedTarget != null)
+            {
+                targeting = true;
+                recticleMoveTime += Time.deltaTime;
+                if (!targetRecticle.transform.GetChild(0).gameObject.activeSelf)
+                    targetRecticle.transform.GetChild(0).gameObject.SetActive(true);
+                targetRecticle.transform.position = Vector3.Lerp(targetRecticle.transform.position, GetCenter(m_currentlySelectedTarget), recticleMoveTime / recticleFinishTime);
+            }
+            else
+            {
+                Debug.Log("NULL!");
+                if (targetRecticle.transform.GetChild(0).gameObject.activeSelf)
+                    targetRecticle.transform.GetChild(0).gameObject.SetActive(false);
+                if (targeting == false)
+                    targetRecticle.transform.position = GetCenter(BasePlayerCharacterController.OwningCharacter.gameObject);
+            }
+        }
+    }
 
     protected virtual bool TryGetButtonDown(string name)
     {
@@ -57,12 +92,15 @@ public class TabTargeting : MonoBehaviour
 
     protected virtual void Start()
     {
-        targetRecticle = new GameObject();
+
+        controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
         gameObject.transform.localPosition = new Vector3(0, 0, 0);
         collider = gameObject.AddComponent<SphereCollider>();
-        collider.radius = 60f;
+        collider.radius = Mathf.Max(BasePlayerCharacterController.OwningCharacter.GetAttackDistance(false), controller.TargetDistance);
         collider.isTrigger = true;
-        controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
+        targetRecticle = GameObject.Find("Recticle");
+        targetRecticle = targetRecticle ?? Instantiate(controller.recticle, new Vector3(0, 0, 0), Quaternion.identity);
+        targetRecticle.name = "Recticle";
     }
 
     protected virtual float GetDistanceWeight(GameObject go)
@@ -123,10 +161,9 @@ public class TabTargeting : MonoBehaviour
         }
         if (m_currentlySelectedTarget != null)
         {
-            UnTarget(m_currentlySelectedTarget);
+            UnTarget(m_currentlySelectedTarget, false);
         }
         Target(list[index]);
-        m_currentlySelectedTarget = list[index];
     }
 
     public void HandleTargeting()
@@ -196,6 +233,14 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
+    protected Vector3 GetCenter(GameObject go)
+    {
+
+        Collider collider = go.GetComponentInChildren<Collider>();
+        Renderer renderer = go.GetComponentInChildren<Renderer>();
+        return collider?.bounds.center ?? renderer?.bounds.center ?? (go.transform.position + (Vector3.up * 5));
+    }
+
     protected virtual List<GameObject> SortObjectsInView(bool cycling = false)
     {
         List<GameObject> Sorted_List = m_CandidateTargets.OrderBy(go => GetSortWeight(go, cycling)).ToList();
@@ -210,7 +255,7 @@ public class TabTargeting : MonoBehaviour
                 // MAKE SURE ALL NON-COLLIDING ENTITIES ARE OFF OF THE DEFAULT LAYER PLEASE
                 // If this does not work, change the layer for playercharactercontroller to Player or something
                 LayerMask mask = 1 << LayerMask.NameToLayer("Default") | 1 << LayerMask.NameToLayer("Building");
-                bool didHit = Physics.Linecast(Camera.main.transform.position, Sorted_List[i].transform.position + (Vector3.up * 5), mask);
+                bool didHit = Physics.Linecast(Camera.main.transform.position, GetCenter(Sorted_List[i]), mask);
                 if (!didHit)
                 {
                     objectsInView.Add(Sorted_List[i]);
@@ -237,6 +282,7 @@ public class TabTargeting : MonoBehaviour
         if (m_CandidateTargets.IndexOf(other.gameObject) != -1)
         {
             m_CandidateTargets.Remove(other.gameObject);
+            UnTarget(other.gameObject);
         }
     }
 
@@ -249,9 +295,11 @@ public class TabTargeting : MonoBehaviour
 
             if (agent != null)
             {
+                m_currentlySelectedTarget = enemy;
                 controller.HandleTargetChange(agent.transform);
                 if (agent is BaseCharacterEntity)
                 {
+                    recticleMoveTime = 0;
                     BaseCharacterEntity character = agent as BaseCharacterEntity;
                     character.OnTargeted(GetComponent<BaseCharacterEntity>());
                     character.CharacterDied.AddListener(AgentDies);
@@ -260,7 +308,7 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    public virtual void UnTarget(GameObject enemy)
+    public virtual void UnTarget(GameObject enemy, bool deselect = true)
     {
         if (enemy != null)
         {
@@ -280,7 +328,13 @@ public class TabTargeting : MonoBehaviour
                 }
                 if (m_currentlySelectedTarget == enemy)
                 {
-                    m_currentlySelectedTarget = null;
+                    if (deselect)
+                    {
+                        m_currentlySelectedTarget = null;
+                        Debug.Log("Set Targeting to False");
+                        targeting = false;
+                    }
+                    recticleMoveTime = 0;
                 }
             }
         }
