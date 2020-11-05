@@ -27,6 +27,8 @@ public class TabTargeting : MonoBehaviour
 
     public bool sortByDistance = true;
 
+    protected GameObject targetRecticle;
+
     protected virtual bool TryGetButtonDown(string name)
     {
         if (InputManager.HasInputSetting(name))
@@ -55,9 +57,10 @@ public class TabTargeting : MonoBehaviour
 
     protected virtual void Start()
     {
+        targetRecticle = new GameObject();
         gameObject.transform.localPosition = new Vector3(0, 0, 0);
         collider = gameObject.AddComponent<SphereCollider>();
-        collider.radius = 30f;
+        collider.radius = 60f;
         collider.isTrigger = true;
         controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
     }
@@ -131,6 +134,7 @@ public class TabTargeting : MonoBehaviour
         if (controller == null)
         {
             controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
+            return;
         }
         // remove null objects in the list and decrement the counter
         // Could optimize through some onDelete event system, probably really not worth
@@ -200,9 +204,17 @@ public class TabTargeting : MonoBehaviour
         for (var i = 0; i < Sorted_List.Count(); ++i)
         {
             Vector2 screenPosition = Camera.main.WorldToScreenPoint(Sorted_List[i].transform.position);
+            // Entity is within the screen (no targeting offscreen)
             if (screenPosition.x > 0 && screenPosition.x < Screen.width && screenPosition.y > 0 && screenPosition.y < Screen.height && Sorted_List[i].activeInHierarchy)
             {
-                objectsInView.Add(Sorted_List[i]);
+                // MAKE SURE ALL NON-COLLIDING ENTITIES ARE OFF OF THE DEFAULT LAYER PLEASE
+                // If this does not work, change the layer for playercharactercontroller to Player or something
+                LayerMask mask = 1 << LayerMask.NameToLayer("Default") | 1 << LayerMask.NameToLayer("Building");
+                bool didHit = Physics.Linecast(Camera.main.transform.position, Sorted_List[i].transform.position + (Vector3.up * 5), mask);
+                if (!didHit)
+                {
+                    objectsInView.Add(Sorted_List[i]);
+                }
             }
         }
 
