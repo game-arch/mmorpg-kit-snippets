@@ -245,7 +245,10 @@ public class TabTargeting : MonoBehaviour
                 }
                 else
                 {
-                    TargetNextBasedOnDirection();
+                    if (potentialTarget == null && selectedTarget == null)
+                        TargetClosest(true);
+                    else
+                        TargetNextBasedOnDirection();
                 }
             }
             else
@@ -265,14 +268,21 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    protected virtual void TargetClosest()
+    protected virtual void TargetClosest(bool potential = false)
     {
         List<GameObject> objectsInView = SortObjectsInView(false);
 
         if (objectsInView.Count > 0)
         {
-            Target(objectsInView.First());
-            selectedTarget = objectsInView.First();
+            if (potential)
+            {
+                HighlightPotentialTarget(objectsInView.First());
+            }
+            else
+            {
+                Target(objectsInView.First());
+                selectedTarget = objectsInView.First();
+            }
         }
     }
 
