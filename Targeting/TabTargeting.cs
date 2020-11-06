@@ -106,8 +106,7 @@ public class TabTargeting : MonoBehaviour
             {
                 if (targetRecticle.transform.GetChild(0).gameObject.activeSelf)
                     targetRecticle.transform.GetChild(0).gameObject.SetActive(false);
-                if (targeting == false)
-                    targetRecticle.transform.position = GetCenter(BasePlayerCharacterController.OwningCharacter.gameObject);
+                targetRecticle.transform.position = GetCenter(BasePlayerCharacterController.OwningCharacter.gameObject);
             }
         }
     }
@@ -240,9 +239,7 @@ public class TabTargeting : MonoBehaviour
                     if (potentialTarget != null)
                         Target(potentialTarget);
                     else if (selectedTarget == null)
-                    {
                         TargetClosest();
-                    }
                     else
                         Controller.Activate();
                 }
@@ -300,10 +297,14 @@ public class TabTargeting : MonoBehaviour
                 // MAKE SURE ALL NON-COLLIDING ENTITIES ARE OFF OF THE DEFAULT LAYER PLEASE
                 // If this does not work, change the layer for playercharactercontroller to Player or something
                 LayerMask mask = 1 << LayerMask.NameToLayer("Default") | 1 << LayerMask.NameToLayer("Building");
-                bool didHit = Physics.Linecast(Controller.CacheGameplayCamera.transform.position, GetCenter(Sorted_List[i]), mask);
+                RaycastHit hit;
+                bool didHit = Physics.Linecast(Controller.CacheGameplayCamera.transform.position, GetCenter(Sorted_List[i]), out hit, mask);
                 if (!didHit)
                 {
                     objectsInView.Add(Sorted_List[i]);
+                } else
+                {
+                    Debug.Log("It hit " + hit.transform.name);
                 }
             }
         }
@@ -353,6 +354,8 @@ public class TabTargeting : MonoBehaviour
 
             if (agent != null)
             {
+                if (selectedTarget != null && selectedTarget == enemy)
+                    UnTarget(selectedTarget);
                 selectedTarget = enemy;
                 if (potentialTarget == selectedTarget)
                     potentialTarget = null;

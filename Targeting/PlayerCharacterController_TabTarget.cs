@@ -12,6 +12,8 @@ namespace MultiplayerARPG
         public bool uisOpen;
         public LayerMask TabTargetIgnoreLayers;
 
+        public bool isAutoAttacking;
+
         public float TargetDistance
         {
             get
@@ -42,29 +44,42 @@ namespace MultiplayerARPG
 
         public virtual void Activate()
         {
-            if (Targeting.SelectedTarget?.GetComponent<BaseCharacterEntity>() != null)
-                this.targetActionType = TargetActionType.Attack;
+            Transform tempTransform = SelectedEntity ? SelectedEntity.transform : null;
+            if (tempTransform == null)
+                return;
+            targetPlayer = tempTransform.GetComponent<BasePlayerCharacterEntity>();
+            targetMonster = tempTransform.GetComponent<BaseMonsterCharacterEntity>();
+            targetNpc = tempTransform.GetComponent<NpcEntity>();
+            targetItemDrop = tempTransform.GetComponent<ItemDropEntity>();
+            targetHarvestable = tempTransform.GetComponent<HarvestableEntity>();
+            targetBuilding = null;
+            targetVehicle = tempTransform.GetComponent<VehicleEntity>();
+            targetActionType = TargetActionType.Activate;
             isFollowingTarget = true;
-        }
-
-        protected void TabTargetUpdateWASDAttack()
-        {
-            destination = null;
-
-            if (Targeting.SelectedTarget && !((Targeting.SelectedTarget?.GetComponent<BaseCharacterEntity>())?.IsHideOrDead() ?? false))
+            isAutoAttacking = false;
+            // Priority Player -> Npc -> Buildings
+            if (targetPlayer != null)
+                CacheUISceneGameplay.SetActivePlayerCharacter(targetPlayer);
+            else if (targetMonster != null || targetHarvestable != null)
             {
-                // Set target, then attack later when moved nearby target
-                SetTarget(Targeting.SelectedTarget.GetComponent<BaseCharacterEntity>(), TargetActionType.Attack, false);
-                isFollowingTarget = true;
+                targetActionType = TargetActionType.Attack;
+                isAutoAttacking = true;
             }
+            else if (targetNpc != null)
+                PlayerCharacterEntity.CallServerNpcActivate(targetNpc.ObjectId);
+            else if (targetBuilding != null)
+            {
+                SelectedEntity = targetBuilding;
+                ActivateBuilding(targetBuilding);
+            }
+            else if (targetVehicle != null)
+                PlayerCharacterEntity.CallServerEnterVehicle(targetVehicle.ObjectId);
+            else if (targetWarpPortal != null)
+                PlayerCharacterEntity.CallServerEnterWarp(targetWarpPortal.ObjectId);
         }
 
         public virtual void TabTargetUpdateTarget()
         {
-            
-            Debug.Log("Casting: " + PlayerCharacterEntity.GetCastingTargetEntity()?.gameObject.transform.position);
-            Debug.Log("SubTarget: " + PlayerCharacterEntity.GetSubTargetEntity()?.gameObject.transform.position);
-            //Debug.Log("MainTarget: " + PlayerCharacterEntity.GetTargetEntity()?.gameObject.transform.position);
             PlayerCharacterEntity.SetSubTarget(Targeting.PotentialTarget != null ? Targeting.PotentialTarget.GetComponent<BaseGameEntity>() : null);
             PlayerCharacterEntity.SetCastingTarget(Targeting.castingOnTarget != null ? Targeting.castingOnTarget.GetComponent<BaseGameEntity>() : null);
             PlayerCharacterEntity.SetTargetEntity(Targeting.SelectedTarget != null ? Targeting.SelectedTarget.GetComponent<BaseGameEntity>() : null);
@@ -100,31 +115,19 @@ namespace MultiplayerARPG
                 Targeting.HandleTargeting();
 
                 if (InputManager.GetButtonDown("PickUpItem"))
-                {
                     PickUpItem();
-                }
                 if (InputManager.GetButtonDown("Reload"))
-                {
                     ReloadAmmo();
-                }
                 if (InputManager.GetButtonDown("ExitVehicle"))
-                {
                     PlayerCharacterEntity.CallServerExitVehicle();
-                }
                 if (InputManager.GetButtonDown("SwitchEquipWeaponSet"))
-                {
                     PlayerCharacterEntity.CallServerSwitchEquipWeaponSet((byte)(PlayerCharacterEntity.EquipWeaponSet + 1));
-                }
                 if (InputManager.GetButtonDown("Sprint"))
-                {
                     isSprinting = !isSprinting;
-                }
                 // Auto reload
                 if (PlayerCharacterEntity.EquipWeapons.rightHand.IsAmmoEmpty() ||
                     PlayerCharacterEntity.EquipWeapons.leftHand.IsAmmoEmpty())
-                {
                     ReloadAmmo();
-                }
             }
             // Update enemy detecting radius to attack distance
             EnemyEntityDetector.detectingRadius = Mathf.Max(PlayerCharacterEntity.GetAttackDistance(false), wasdClearTargetDistance);
@@ -154,18 +157,9 @@ namespace MultiplayerARPG
                 ClearQueueUsingSkill();
                 destination = null;
                 isFollowingTarget = false;
-                if (Targeting.SelectedTarget != null && Vector3.Distance(CacheTransform.position, Targeting.SelectedTarget.transform.position) >= wasdClearTargetDistance)
-                {
-                    Targeting.UnTarget(Targeting.SelectedTarget);
-                }
-                if (Targeting.PotentialTarget != null && Vector3.Distance(CacheTransform.position, Targeting.PotentialTarget.transform.position) >= wasdClearTargetDistance)
-                {
-                    Targeting.UnHighlightPotentialTarget();
-                }
                 if (!PlayerCharacterEntity.IsPlayingActionAnimation())
                     PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(moveDirection));
             }
-
             // Always forward
             MovementState movementState = MovementState.Forward;
             if (InputManager.GetButtonDown("Jump"))
@@ -217,8 +211,6 @@ namespace MultiplayerARPG
             // Will set move target when pointer isn't point on an UIs 
             if (!isPointerOverUI && (getMouse || getMouseUp))
             {
-                Targeting.UnTarget(Targeting.SelectedTarget);
-                Targeting.UnHighlightPotentialTarget();
                 didActionOnTarget = false;
                 // Prepare temp variables
                 Transform tempTransform;
@@ -247,7 +239,15 @@ namespace MultiplayerARPG
                     }
                     else if (mouseUpOnTarget)
                     {
-                        Targeting.Target(tempTransform.gameObject);
+                        if (Targeting.SelectedTarget && tempTransform.gameObject.GetComponent<BaseGameEntity>() == Targeting.SelectedTarget?.GetComponent<BaseGameEntity>())
+                        {
+                            Activate();
+                        }
+                        else
+                        {
+                            Targeting.UnHighlightPotentialTarget();
+                            Targeting.Target(tempTransform.gameObject);
+                        }
                     } // End mouseUpOnTarget
                 }
                 // When clicked on map (Not touch any game entity)
@@ -319,14 +319,7 @@ namespace MultiplayerARPG
                 // Let's stick to tab targeting instead of finding a random entity
                 if (target != null && target is BaseCharacterEntity)
                 {
-                    Targeting.castingOnTarget = target.gameObject;
-                    if (Targeting.SelectedTarget == null)
-                        Targeting.Target(Targeting.castingOnTarget);
-                    if (Targeting.castingOnTarget == Targeting.PotentialTarget)
-                        Targeting.UnHighlightPotentialTarget();
-                    TabTargetUpdateTarget();
-                    TurnCharacterToPosition(target.transform.position);
-                    RequestUsePendingSkill();
+                    UseSkillOn(target);
                     return;
                 }
                 ClearQueueUsingSkill();
@@ -336,6 +329,16 @@ namespace MultiplayerARPG
             RequestUsePendingSkill();
         }
 
+        private void UseSkillOn(BaseGameEntity target)
+        {
+            Targeting.castingOnTarget = target.gameObject;
+            if (Targeting.SelectedTarget == null)
+                Targeting.Target(Targeting.castingOnTarget);
+            Targeting.UnHighlightPotentialTarget();
+            TabTargetUpdateTarget();
+            TurnCharacterToPosition(target.transform.position);
+            RequestUsePendingSkill();
+        }
 
         public virtual void HandleTargetChange(Transform tempTransform)
         {
@@ -348,18 +351,87 @@ namespace MultiplayerARPG
                 targetHarvestable = tempTransform.GetComponent<HarvestableEntity>();
                 targetBuilding = null;
                 targetVehicle = tempTransform.GetComponent<VehicleEntity>();
+                targetActionType = TargetActionType.Activate;
+                isAutoAttacking = false;
                 return;
             }
             isFollowingTarget = false;
+        }
+        public bool CanAttack<T>(out T entity)
+            where T : DamageableEntity
+        {
+            if (!TryGetDoActionEntity(out entity, TargetActionType.Attack))
+                return false;
+            if (entity == PlayerCharacterEntity)
+            {
+                entity = null;
+                return false;
+            }
+            if (!(entity is HarvestableEntity))
+            {
+                if (entity.IsInSafeArea)
+                {
+                    PlayerCharacterEntity.CurrentGameManager.SendServerGameMessage(PlayerCharacterEntity.ConnectionId,
+                        CustomGameMessage.NoCastingInSafeArea);
+                    isFollowingTarget = false;
+                    isAutoAttacking = false;
+                    entity = null;
+                    return false;
+                }
+                if (PlayerCharacterEntity.Entity.IsInSafeArea)
+                {
+                    PlayerCharacterEntity.CurrentGameManager.SendServerGameMessage(PlayerCharacterEntity.ConnectionId,
+                        CustomGameMessage.NoCastingInSafeArea);
+                    isFollowingTarget = false;
+                    isAutoAttacking = false;
+                    entity = null;
+                    return false;
+                }
+            }
+            return true;
         }
 
         public void TabTargetUpdateFollowTarget()
         {
             if (!isFollowingTarget)
                 return;
-
-            if (TryGetAttackingEntity(out targetDamageable))
+            // Use the set target action type for the following actions
+            if (TryGetDoActionEntity(out targetPlayer))
             {
+                DoActionOrMoveToEntity(targetPlayer, CurrentGameInstance.conversationDistance, () =>
+                {
+                    // TODO: Do something
+                });
+                return;
+            }
+
+            if (TryGetDoActionEntity(out targetNpc))
+            {
+                DoActionOrMoveToEntity(targetNpc, CurrentGameInstance.conversationDistance, () =>
+                {
+                    if (!didActionOnTarget)
+                    {
+                        didActionOnTarget = true;
+                        PlayerCharacterEntity.CallServerNpcActivate(targetNpc.ObjectId);
+                    }
+                });
+                return;
+            }
+
+            if (TryGetDoActionEntity(out targetItemDrop))
+            {
+                DoActionOrMoveToEntity(targetItemDrop, CurrentGameInstance.pickUpItemDistance, () =>
+                {
+                    PlayerCharacterEntity.CallServerPickupItem(targetItemDrop.ObjectId);
+                    ClearTarget();
+                });
+                return;
+            }
+            // use attack
+            targetActionType = TargetActionType.Attack;
+            if (isAutoAttacking && CanAttack(out targetDamageable))
+            {
+                Debug.Log("auto attacking");
                 if (targetDamageable.IsHideOrDead())
                 {
                     ClearQueueUsingSkill();
@@ -372,8 +444,11 @@ namespace MultiplayerARPG
                 float attackFov = 0f;
                 GetAttackDistanceAndFov(isLeftHandAttacking, out attackDistance, out attackFov);
                 AttackOrMoveToEntity(targetDamageable, attackDistance, CurrentGameInstance.characterLayer.Mask);
+                return;
             }
-            else if (TryGetUsingSkillEntity(out targetDamageable))
+            // use skill
+            targetActionType = TargetActionType.UseSkill;
+            if (TryGetUsingSkillEntity(out targetDamageable))
             {
                 if (queueUsingSkill.skill.IsAttack() && targetDamageable.IsHideOrDead())
                 {
@@ -387,34 +462,10 @@ namespace MultiplayerARPG
                 float castFov = 0f;
                 GetUseSkillDistanceAndFov(isLeftHandAttacking, out castDistance, out castFov);
                 UseSkillOrMoveToEntity(targetDamageable, castDistance);
+                return;
             }
-            else if (TryGetDoActionEntity(out targetPlayer))
-            {
-                DoActionOrMoveToEntity(targetPlayer, CurrentGameInstance.conversationDistance, () =>
-                {
-                    // TODO: Do something
-                });
-            }
-            else if (TryGetDoActionEntity(out targetNpc))
-            {
-                DoActionOrMoveToEntity(targetNpc, CurrentGameInstance.conversationDistance, () =>
-                {
-                    if (!didActionOnTarget)
-                    {
-                        didActionOnTarget = true;
-                        PlayerCharacterEntity.CallServerNpcActivate(targetNpc.ObjectId);
-                    }
-                });
-            }
-            else if (TryGetDoActionEntity(out targetItemDrop))
-            {
-                DoActionOrMoveToEntity(targetItemDrop, CurrentGameInstance.pickUpItemDistance, () =>
-                {
-                    PlayerCharacterEntity.CallServerPickupItem(targetItemDrop.ObjectId);
-                    ClearTarget();
-                });
-            }
-            else if (TryGetDoActionEntity(out targetBuilding, TargetActionType.Activate))
+            targetActionType = TargetActionType.Activate;
+            if (TryGetDoActionEntity(out targetBuilding, TargetActionType.Activate))
             {
                 DoActionOrMoveToEntity(targetBuilding, CurrentGameInstance.conversationDistance, () =>
                 {
@@ -424,8 +475,11 @@ namespace MultiplayerARPG
                         ActivateBuilding(targetBuilding);
                     }
                 });
+                return;
             }
-            else if (TryGetDoActionEntity(out targetBuilding, TargetActionType.ViewOptions))
+
+            targetActionType = TargetActionType.ViewOptions;
+            if (TryGetDoActionEntity(out targetBuilding, TargetActionType.ViewOptions))
             {
                 DoActionOrMoveToEntity(targetBuilding, CurrentGameInstance.conversationDistance, () =>
                 {
@@ -435,8 +489,11 @@ namespace MultiplayerARPG
                         ShowCurrentBuildingDialog();
                     }
                 });
+                return;
             }
-            else if (TryGetDoActionEntity(out targetVehicle))
+
+            targetActionType = TargetActionType.Activate;
+            if (TryGetDoActionEntity(out targetVehicle))
             {
                 DoActionOrMoveToEntity(targetVehicle, CurrentGameInstance.conversationDistance, () =>
                 {

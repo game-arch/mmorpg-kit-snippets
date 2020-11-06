@@ -7,12 +7,12 @@ namespace MultiplayerARPG
     public partial class PlayerCharacterController
     {
 
-
+        [DevExtMethods("Awake")]
         protected void DevExt_Awake()
         {
             if (!DefaultLocale.Texts.ContainsKey(CustomGameMessage.NoCastingInSafeArea.ToString()))
             {
-                DefaultLocale.Texts.Add(CustomGameMessage.NoCastingInSafeArea.ToString(), "You may not attack in the safe zone");
+                DefaultLocale.Texts.Add(CustomGameMessage.NoCastingInSafeArea.ToString(), "Unable to attack in the Safe Zone");
             }
         }
         protected virtual void ClearQueuedSkillIfInSafeZone()
