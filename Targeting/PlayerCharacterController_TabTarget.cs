@@ -40,26 +40,233 @@ namespace MultiplayerARPG
             }
         }
 
+        public virtual void Activate()
+        {
+            isFollowingTarget = true;
+        }
+
         protected void TabTargetUpdateWASDAttack()
         {
             destination = null;
-            BaseCharacterEntity targetEntity;
 
-            if (TryGetSelectedTargetAsAttackingEntity(out targetEntity))
-                SetTarget(targetEntity, TargetActionType.Attack, false);
-
-            if (targetEntity != null && !targetEntity.IsHideOrDead())
+            if (Targeting.SelectedTarget && !((Targeting.SelectedTarget?.GetComponent<BaseCharacterEntity>())?.IsHideOrDead() ?? false))
             {
                 // Set target, then attack later when moved nearby target
-                SetTarget(targetEntity, TargetActionType.Attack, false);
+                SetTarget(Targeting.SelectedTarget.GetComponent<BaseCharacterEntity>(), TargetActionType.Attack, false);
                 isFollowingTarget = true;
             }
-            else
+        }
+
+        public virtual void TabTargetUpdateInput()
+        {
+            bool isFocusInputField = GenericUtils.IsFocusInputField() || UIElementUtils.IsUIElementActive();
+            bool isPointerOverUIObject = CacheUISceneGameplay.IsPointerOverUIObject();
+            if (CacheGameplayCameraControls != null)
             {
-                // No nearby target, so attack immediately
-                if (PlayerCharacterEntity.CallServerAttack(isLeftHandAttacking))
-                    isLeftHandAttacking = !isLeftHandAttacking;
+                CacheGameplayCameraControls.updateRotationX = false;
+                CacheGameplayCameraControls.updateRotationY = false;
+                CacheGameplayCameraControls.updateRotation = !isFocusInputField && !isPointerOverUIObject && InputManager.GetButton("CameraRotate");
+                CacheGameplayCameraControls.updateZoom = !isFocusInputField && !isPointerOverUIObject;
+            }
+
+            if (isFocusInputField)
+                return;
+
+            if (PlayerCharacterEntity.IsDead())
+                return;
+
+            // If it's building something, don't allow to activate NPC/Warp/Pickup Item
+            if (ConstructingBuildingEntity == null)
+            {
+                Targeting.HandleTargeting();
+
+                if (InputManager.GetButtonDown("PickUpItem"))
+                {
+                    PickUpItem();
+                }
+                if (InputManager.GetButtonDown("Reload"))
+                {
+                    ReloadAmmo();
+                }
+                if (InputManager.GetButtonDown("ExitVehicle"))
+                {
+                    PlayerCharacterEntity.CallServerExitVehicle();
+                }
+                if (InputManager.GetButtonDown("SwitchEquipWeaponSet"))
+                {
+                    PlayerCharacterEntity.CallServerSwitchEquipWeaponSet((byte)(PlayerCharacterEntity.EquipWeaponSet + 1));
+                }
+                if (InputManager.GetButtonDown("Sprint"))
+                {
+                    isSprinting = !isSprinting;
+                }
+                // Auto reload
+                if (PlayerCharacterEntity.EquipWeapons.rightHand.IsAmmoEmpty() ||
+                    PlayerCharacterEntity.EquipWeapons.leftHand.IsAmmoEmpty())
+                {
+                    ReloadAmmo();
+                }
+            }
+            // Update enemy detecting radius to attack distance
+            EnemyEntityDetector.detectingRadius = Mathf.Max(PlayerCharacterEntity.GetAttackDistance(false), wasdClearTargetDistance);
+            // Update inputs
+            UpdateQueuedSkill();
+            TabTargetUpdatePointClickInput();
+            UpdateWASDInput();
+            // Set sprinting state
+            PlayerCharacterEntity.SetExtraMovement(isSprinting ? ExtraMovementState.IsSprinting : ExtraMovementState.None);
+        }
+
+
+        public virtual void TabTargetUpdateWASDInput()
+        {
+            if (controllerMode == PlayerCharacterControllerMode.PointClick)
+                return;
+
+            // If mobile platforms, don't receive input raw to make it smooth
+            bool raw = !InputManager.useMobileInputOnNonMobile && !Application.isMobilePlatform;
+            Vector3 moveDirection = GetMoveDirection(InputManager.GetAxis("Horizontal", raw), InputManager.GetAxis("Vertical", raw));
+            moveDirection.Normalize();
+
+            // Move
+            if (moveDirection.sqrMagnitude > 0f)
+            {
+                HideNpcDialog();
+                ClearQueueUsingSkill();
+                destination = null;
                 isFollowingTarget = false;
+                if (Targeting.SelectedTarget != null && Vector3.Distance(CacheTransform.position, Targeting.SelectedTarget.transform.position) >= wasdClearTargetDistance)
+                {
+                    Targeting.UnTarget(Targeting.SelectedTarget);
+                }
+                if (Targeting.PotentialTarget != null && Vector3.Distance(CacheTransform.position, Targeting.PotentialTarget.transform.position) >= wasdClearTargetDistance)
+                {
+                    Targeting.UnHighlightPotentialTarget();
+                }
+                if (!PlayerCharacterEntity.IsPlayingActionAnimation())
+                    PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(moveDirection));
+            }
+
+            // Always forward
+            MovementState movementState = MovementState.Forward;
+            if (InputManager.GetButtonDown("Jump"))
+                movementState |= MovementState.IsJump;
+            PlayerCharacterEntity.KeyMovement(moveDirection, movementState);
+        }
+        protected virtual void PickUpItem()
+        {
+            targetItemDrop = null;
+            if (ItemDropEntityDetector.itemDrops.Count > 0)
+                targetItemDrop = ItemDropEntityDetector.itemDrops[0];
+            if (targetItemDrop != null)
+                PlayerCharacterEntity.CallServerPickupItem(targetItemDrop.ObjectId);
+        }
+
+        public virtual void TabTargetUpdatePointClickInput()
+        {
+            if (controllerMode == PlayerCharacterControllerMode.WASD)
+                return;
+
+            // If it's building something, not allow point click movement
+            if (ConstructingBuildingEntity != null)
+                return;
+
+            // If it's aiming skills, not allow point click movement
+            if (UICharacterHotkeys.UsingHotkey != null)
+                return;
+
+            getMouseDown = Input.GetMouseButtonDown(0);
+            getMouseUp = Input.GetMouseButtonUp(0);
+            getMouse = Input.GetMouseButton(0);
+
+            if (getMouseDown)
+            {
+                isMouseDragOrHoldOrOverUI = false;
+                mouseDownTime = Time.unscaledTime;
+                mouseDownPosition = Input.mousePosition;
+            }
+            // Read inputs
+            isPointerOverUI = CacheUISceneGameplay.IsPointerOverUIObject();
+            isMouseDragDetected = (Input.mousePosition - mouseDownPosition).sqrMagnitude > DETECT_MOUSE_DRAG_DISTANCE_SQUARED;
+            isMouseHoldDetected = Time.unscaledTime - mouseDownTime > DETECT_MOUSE_HOLD_DURATION;
+            isMouseHoldAndNotDrag = !isMouseDragDetected && isMouseHoldDetected;
+            if (!isMouseDragOrHoldOrOverUI && (isMouseDragDetected || isMouseHoldDetected || isPointerOverUI))
+            {
+                // Detected mouse dragging or hold on an UIs
+                isMouseDragOrHoldOrOverUI = true;
+            }
+            // Will set move target when pointer isn't point on an UIs 
+            if (!isPointerOverUI && (getMouse || getMouseUp))
+            {
+                Targeting.UnTarget(Targeting.SelectedTarget);
+                Targeting.UnHighlightPotentialTarget();
+                didActionOnTarget = false;
+                // Prepare temp variables
+                Transform tempTransform;
+                Vector3 tempVector3;
+                bool tempHasMapPosition = false;
+                Vector3 tempMapPosition = Vector3.zero;
+                BuildingMaterial tempBuildingMaterial;
+                // If mouse up while cursor point to target (character, item, npc and so on)
+                bool mouseUpOnTarget = getMouseUp && !isMouseDragOrHoldOrOverUI;
+                int tempCount = FindClickObjects(out tempVector3);
+                for (int tempCounter = 0; tempCounter < tempCount; ++tempCounter)
+                {
+                    tempTransform = physicFunctions.GetRaycastTransform(tempCounter);
+                    // When holding on target, or already enter edit building mode
+                    if (isMouseHoldAndNotDrag)
+                    {
+                        targetBuilding = null;
+                        tempBuildingMaterial = tempTransform.GetComponent<BuildingMaterial>();
+                        if (tempBuildingMaterial != null)
+                            targetBuilding = tempBuildingMaterial.BuildingEntity;
+                        if (targetBuilding && !targetBuilding.IsDead())
+                        {
+                            Targeting.Target(targetBuilding.gameObject);
+                            break;
+                        }
+                    }
+                    else if (mouseUpOnTarget)
+                    {
+                        Targeting.Target(tempTransform.gameObject);
+                    } // End mouseUpOnTarget
+                }
+                // When clicked on map (Not touch any game entity)
+                // - Clear selected target to hide selected entity UIs
+                // - Set target position to position where mouse clicked
+                if (tempHasMapPosition)
+                {
+                    targetPosition = tempMapPosition;
+                }
+                // When clicked on map (any non-collider position)
+                // tempVector3 is come from FindClickObjects()
+                // - Clear character target to make character stop doing actions
+                // - Clear selected target to hide selected entity UIs
+                // - Set target position to position where mouse clicked
+                if (CurrentGameInstance.DimensionType == DimensionType.Dimension2D && mouseUpOnTarget && tempCount == 0)
+                {
+                    ClearTarget();
+                    tempVector3.z = 0;
+                    targetPosition = tempVector3;
+                }
+
+                // Found ground position
+                if (targetPosition.HasValue)
+                {
+                    // Close NPC dialog, when target changes
+                    HideNpcDialog();
+                    ClearQueueUsingSkill();
+                    isFollowingTarget = false;
+                    if (PlayerCharacterEntity.IsPlayingActionAnimation())
+                    {
+                        if (pointClickInterruptCastingSkill)
+                            PlayerCharacterEntity.CallServerSkillCastingInterrupt();
+                    }
+                    else
+                    {
+                        OnPointClickOnGround(targetPosition.Value);
+                    }
+                }
             }
         }
 
@@ -76,12 +283,9 @@ namespace MultiplayerARPG
                 return;
             destination = null;
             BaseSkill skill = queueUsingSkill.skill;
-            short skillLevel = queueUsingSkill.level;
             Vector3? aimPosition = queueUsingSkill.aimPosition;
-            BaseCharacterEntity targetEntity;
-            // Point click mode always lock on target
-            bool wasdLockAttackTarget = this.wasdLockAttackTarget || controllerMode == PlayerCharacterControllerMode.PointClick;
-
+            Debug.Log(Targeting.PotentialTarget + " " + Targeting.SelectedTarget);
+            BaseGameEntity target = (Targeting.PotentialTarget ?? Targeting.SelectedTarget)?.GetComponent<BaseGameEntity>();
             if (skill.HasCustomAimControls())
             {
                 // Target not required, use skill immediately
@@ -93,56 +297,45 @@ namespace MultiplayerARPG
 
             if (skill.IsAttack())
             {
-                RequestUsePendingSkill();
-                isFollowingTarget = false;
+                // Let's stick to tab targeting instead of finding a random entity
+                if (target != null && target is BaseCharacterEntity)
+                {
+                    SetTarget(target, TargetActionType.UseSkill, false);
+                    RequestUsePendingSkill();
+                    isFollowingTarget = false;
+                }
+                else
+                {
+                    ClearQueueUsingSkill();
+                    isFollowingTarget = false;
+                }
             }
             else
             {
                 // Not attack skill, so use skill immediately
                 if (skill.RequiredTarget())
                 {
-                    if (wasdLockAttackTarget)
+                    // Set target, then use skill later when moved nearby target
+                    if (target != null && target is BaseCharacterEntity)
                     {
-                        // Set target, then use skill later when moved nearby target
-                        if (TargetEntity != null && TargetEntity is BaseCharacterEntity)
-                        {
-                            SetTarget(TargetEntity, TargetActionType.UseSkill, false);
-                            isFollowingTarget = true;
-                        }
-                        else
-                        {
-                            ClearQueueUsingSkill();
-                            isFollowingTarget = false;
-                        }
+                        RequestUsePendingSkill();
                     }
                     else
                     {
-                        // Try apply skill to selected entity immediately, it will fail if selected entity is far from the character
-                        if (TargetEntity != null && TargetEntity is BaseCharacterEntity)
-                        {
-                            if (TargetEntity != PlayerCharacterEntity)
-                            {
-                                // Look at target and use skill
-                                TurnCharacterToEntity(TargetEntity);
-                            }
-                            RequestUsePendingSkill();
-                            isFollowingTarget = false;
-                        }
-                        else
-                        {
-                            ClearQueueUsingSkill();
-                            isFollowingTarget = false;
-                        }
+                        ClearQueueUsingSkill();
+                        isFollowingTarget = false;
                     }
                 }
                 else
                 {
+
                     // Target not required, use skill immediately
                     RequestUsePendingSkill();
                     isFollowingTarget = false;
                 }
             }
         }
+
 
         public virtual void HandleTargetChange(Transform tempTransform)
         {
@@ -205,10 +398,5 @@ namespace MultiplayerARPG
                 isFollowingTarget = false;
             }
         }
-        public virtual void Activate()
-        {
-            isFollowingTarget = true;
-        }
-
     }
 }

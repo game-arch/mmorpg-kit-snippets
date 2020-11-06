@@ -12,106 +12,68 @@ public class TightenedPlayerController : PlayerCharacterController
     protected override void OnUseSkillOnEntity()
     {
         Targeting.castingOnTarget = Targeting.PotentialTarget ?? Targeting.SelectedTarget;
+        if (Targeting.SelectedTarget == null)
+            Targeting.Target(Targeting.castingOnTarget);
     }
 
 
+    protected override void Update()
+    {
+        if (PlayerCharacterEntity == null || !PlayerCharacterEntity.IsOwnerClient)
+            return;
+
+        if (Targeting.SelectedTarget == null && Targeting.PotentialTarget == null && Targeting.castingOnTarget == null)
+            ClearTarget();
+        if (CacheGameplayCameraControls != null)
+            CacheGameplayCameraControls.target = CameraTargetTransform;
+
+        if (CacheMinimapCameraControls != null)
+            CacheMinimapCameraControls.target = CameraTargetTransform;
+
+        if (CacheTargetObject != null)
+            CacheTargetObject.gameObject.SetActive(destination.HasValue);
+
+        if (PlayerCharacterEntity.IsDead())
+        {
+            ClearTarget();
+            ClearQueueUsingSkill();
+            destination = null;
+            isFollowingTarget = false;
+            CancelBuild();
+            CacheUISceneGameplay.SetTargetEntity(null);
+        }
+        else
+        {
+            CacheUISceneGameplay.SetTargetEntity(SelectedEntity);
+            PlayerCharacterEntity.SetTargetEntity(SelectedEntity);
+        }
+
+        if (destination.HasValue)
+        {
+            if (CacheTargetObject != null)
+                CacheTargetObject.transform.position = destination.Value;
+            if (Vector3.Distance(destination.Value, MovementTransform.position) < StoppingDistance + 0.5f)
+                destination = null;
+        }
+
+        UpdateInput();
+        UpdateFollowTarget();
+    }
     // Update is called once per frame
     public override void UpdateInput()
     {
         Targeting.UpdateTargeting();
+        SelectedEntity = (Targeting.castingOnTarget ?? Targeting.PotentialTarget ?? Targeting.SelectedTarget)?.GetComponent<BaseGameEntity>();
         ClearQueuedSkillIfInSafeZone();
-        InheritedUpdateInput();
+        TabTargetUpdateInput();
     }
 
     protected override void OnPointClickOnGround(Vector3 targetPosition)
     {
-        Debug.Log("clicked on ground!");
         // Disable click to move
         Targeting.UnHighlightPotentialTarget();
         Targeting.UnTarget(Targeting.SelectedTarget);
     }
 
-    public virtual void InheritedUpdateInput()
-    {
-        bool isFocusInputField = GenericUtils.IsFocusInputField() || UIElementUtils.IsUIElementActive();
-        bool isPointerOverUIObject = CacheUISceneGameplay.IsPointerOverUIObject();
-        if (CacheGameplayCameraControls != null)
-        {
-            CacheGameplayCameraControls.updateRotationX = false;
-            CacheGameplayCameraControls.updateRotationY = false;
-            CacheGameplayCameraControls.updateRotation = !isFocusInputField && !isPointerOverUIObject && InputManager.GetButton("CameraRotate");
-            CacheGameplayCameraControls.updateZoom = !isFocusInputField && !isPointerOverUIObject;
-        }
-
-        if (isFocusInputField)
-            return;
-
-        if (PlayerCharacterEntity.IsDead())
-            return;
-
-        // If it's building something, don't allow to activate NPC/Warp/Pickup Item
-        if (ConstructingBuildingEntity == null)
-        {
-            Targeting.HandleTargeting();
-
-            if (InputManager.GetButtonDown("PickUpItem"))
-            {
-                PickUpItem();
-            }
-            if (InputManager.GetButtonDown("Reload"))
-            {
-                ReloadAmmo();
-            }
-            if (InputManager.GetButtonDown("ExitVehicle"))
-            {
-                PlayerCharacterEntity.CallServerExitVehicle();
-            }
-            if (InputManager.GetButtonDown("SwitchEquipWeaponSet"))
-            {
-                PlayerCharacterEntity.CallServerSwitchEquipWeaponSet((byte)(PlayerCharacterEntity.EquipWeaponSet + 1));
-            }
-            if (InputManager.GetButtonUp("Sprint"))
-            {
-                isSprinting = false;
-            }
-            if (InputManager.GetButtonDown("Sprint"))
-            {
-                isSprinting = true;
-            }
-            // Auto reload
-            if (PlayerCharacterEntity.EquipWeapons.rightHand.IsAmmoEmpty() ||
-                PlayerCharacterEntity.EquipWeapons.leftHand.IsAmmoEmpty())
-            {
-                ReloadAmmo();
-            }
-        }
-        // Update enemy detecting radius to attack distance
-        EnemyEntityDetector.detectingRadius = Mathf.Max(PlayerCharacterEntity.GetAttackDistance(false), wasdClearTargetDistance);
-        // Update inputs
-        TabTargetUpdateQueuedSkill();
-        UpdatePointClickInput();
-        UpdateWASDInput();
-        // Set sprinting state
-        PlayerCharacterEntity.SetExtraMovement(isSprinting ? ExtraMovementState.IsSprinting : ExtraMovementState.None);
-    }
-
-
-    protected override void SetTarget(BaseGameEntity entity, TargetActionType targetActionType, bool checkControllerMode = true)
-    {
-        targetPosition = null;
-        this.targetActionType = targetActionType;
-        destination = null;
-        TargetEntity = entity;
-        PlayerCharacterEntity.SetTargetEntity(entity);
-    }
-
-    protected virtual void PickUpItem()
-    {
-        targetItemDrop = null;
-        if (ItemDropEntityDetector.itemDrops.Count > 0)
-            targetItemDrop = ItemDropEntityDetector.itemDrops[0];
-        if (targetItemDrop != null)
-            PlayerCharacterEntity.CallServerPickupItem(targetItemDrop.ObjectId);
-    }
 
 }

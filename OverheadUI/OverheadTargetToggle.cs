@@ -20,7 +20,7 @@ namespace OverheadUI
             PlayerCharacterController controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
             if (controller)
             {
-                BaseGameEntity target = controller.Targeting?.SelectedTarget?.GetComponent<BaseGameEntity>() ?? controller.SelectedEntity;
+                BaseGameEntity target = controller.Targeting?.SelectedTarget != null ? controller.Targeting.SelectedTarget.GetComponent<BaseGameEntity>() : null;
                 BaseGameEntity subTarget = controller.subTarget;
                 if (character)
                 {

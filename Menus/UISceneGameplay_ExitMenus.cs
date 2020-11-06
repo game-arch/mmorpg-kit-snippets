@@ -41,13 +41,12 @@ namespace MultiplayerARPG
             {
                 UIOrdering lastUi = orderedUIs.Last();
                 lastUi.Hide();
-                Debug.Log(lastUi.name + " was closed!");
                 foreach (UIOrdering peer in lastUi.closePeersOnEscape)
                 {
                     peer.Hide();
                 }
             }
-            else if (Input.GetKeyDown(KeyCode.Escape) && !Controller.Targeting.IsTargeting)
+            else if (Input.GetKeyDown(KeyCode.Escape) && Controller.Targeting.SelectedTarget == null && Controller.Targeting.PotentialTarget == null)
             {
                 uiSystemDialog.Show();
             }

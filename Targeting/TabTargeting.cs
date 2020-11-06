@@ -87,11 +87,6 @@ public class TabTargeting : MonoBehaviour
     {
         if (castingOnTarget && !PlayerEntity.IsAttackingOrUsingSkill)
             castingOnTarget = null;
-        BaseGameEntity actionTarget = (castingOnTarget ?? potentialTarget ?? selectedTarget)?.GetComponent<BaseGameEntity>();
-        if (Controller.SelectedEntity != actionTarget)
-        {
-           Controller.HandleTargetChange(actionTarget?.transform);
-        }
     }
 
 
@@ -228,7 +223,6 @@ public class TabTargeting : MonoBehaviour
         }
         if ((selectedTarget != null || potentialTarget != null) && Input.GetKeyUp(KeyCode.Escape) && !Controller.uisOpen)
         {
-
             if (potentialTarget != null)
                 UnHighlightPotentialTarget();
             else
