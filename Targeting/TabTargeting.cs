@@ -259,7 +259,7 @@ public class TabTargeting : MonoBehaviour
                 horizontalTargetingInUse = true;
                 if (m_CandidateTargets.Count > 0)
                 {
-                    if (potentialTarget == null && selectedTarget == null)
+                    if (potentialTarget == Controller.PlayerCharacterEntity.gameObject || (potentialTarget == null && selectedTarget == null))
                         TargetClosest(true);
                     else
                         TargetNextBasedOnDirection();
@@ -276,7 +276,6 @@ public class TabTargeting : MonoBehaviour
             if (!verticalTargetingInUse)
             {
                 verticalTargetingInUse = true;
-                Debug.Log("Target Party!");
                 if (Controller.PlayerCharacterEntity.PartyId > 0)
                 {
                     PartyData tempPartyData;
@@ -343,6 +342,7 @@ public class TabTargeting : MonoBehaviour
     protected virtual List<GameObject> GetPartyMembersInView(SocialCharacterData[] partyMembers)
     {
         List<GameObject> party = new List<GameObject>();
+        party.Add(Controller.PlayerCharacterEntity.gameObject);
         foreach (SocialCharacterData partyMember in partyMembers)
         {
             for (int i = 0; i < m_CandidateTargets.Count; i++)
