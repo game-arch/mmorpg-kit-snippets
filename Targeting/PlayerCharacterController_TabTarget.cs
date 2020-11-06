@@ -42,6 +42,57 @@ namespace MultiplayerARPG
             }
         }
 
+        protected virtual void TabTargetUpdate()
+        {
+            if (PlayerCharacterEntity == null || !PlayerCharacterEntity.IsOwnerClient)
+                return;
+
+            if (Targeting.SelectedTarget == null && Targeting.PotentialTarget == null && Targeting.castingOnTarget == null)
+                ClearTarget();
+            if (CacheGameplayCameraControls != null)
+                CacheGameplayCameraControls.target = CameraTargetTransform;
+
+            if (CacheMinimapCameraControls != null)
+                CacheMinimapCameraControls.target = CameraTargetTransform;
+
+            if (CacheTargetObject != null)
+                CacheTargetObject.gameObject.SetActive(destination.HasValue);
+
+            if (PlayerCharacterEntity.IsDead())
+            {
+                ClearTarget();
+                ClearQueueUsingSkill();
+                destination = null;
+                isFollowingTarget = false;
+                CancelBuild();
+                CacheUISceneGameplay.SetTargetEntity(null);
+            }
+            else
+            {
+                TabTargetUpdateTarget();
+            }
+
+            if (destination.HasValue)
+            {
+                if (CacheTargetObject != null)
+                    CacheTargetObject.transform.position = destination.Value;
+                if (Vector3.Distance(destination.Value, MovementTransform.position) < StoppingDistance + 0.5f)
+                    destination = null;
+            }
+
+            Targeting.UpdateTargeting();
+            ClearQueuedSkillIfInSafeZone();
+            TabTargetUpdateInput();
+            TabTargetUpdateFollowTarget();
+        }
+        protected virtual void TabTargetOnPointClickOnGround(Vector3 targetPosition)
+        {
+            OnPointClickOnGround(targetPosition);
+            // Disable click to move
+            Targeting.UnHighlightPotentialTarget();
+            Targeting.UnTarget(Targeting.SelectedTarget);
+        }
+
         public virtual void Activate()
         {
             Transform tempTransform = SelectedEntity ? SelectedEntity.transform : null;
