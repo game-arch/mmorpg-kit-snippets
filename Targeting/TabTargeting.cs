@@ -22,7 +22,7 @@ public class TabTargeting : MonoBehaviour
 
     protected GameObject selectedTarget; //object your targeting
     protected GameObject potentialTarget;
-    public GameObject castingOnTarget;
+    public GameObject castingTarget;
 
     protected readonly List<GameObject> m_CandidateTargets = new List<GameObject>(); //list of candidate game objects
     PlayerCharacterController controller;
@@ -33,6 +33,8 @@ public class TabTargeting : MonoBehaviour
     protected GameObject targetRecticle;
     protected float recticleMoveTime = 0f;
     protected float recticleFinishTime = 0.5f;
+    protected bool verticalTargetingInUse;
+    protected bool horizontalTargetingInUse;
 
 
 
@@ -55,6 +57,17 @@ public class TabTargeting : MonoBehaviour
         get
         {
             return potentialTarget;
+        }
+    }
+    public GameObject CastingTarget
+    {
+        get
+        {
+            return castingTarget;
+        }
+        set
+        {
+            castingTarget = value;
         }
     }
 
@@ -85,8 +98,8 @@ public class TabTargeting : MonoBehaviour
 
     public void UpdateTargeting()
     {
-        if (castingOnTarget && !PlayerEntity.IsAttackingOrUsingSkill)
-            castingOnTarget = null;
+        if (castingTarget && !PlayerEntity.IsAttackingOrUsingSkill)
+            castingTarget = null;
     }
 
 
@@ -122,13 +135,9 @@ public class TabTargeting : MonoBehaviour
     }
     protected virtual bool IsTargetButtonPressed()
     {
-        return (
-            Input.GetAxisRaw("TargetHorizontal") > 0.0f
-            || Input.GetAxisRaw("TargetHorizontal") < 0.0f
-            || Input.GetKeyDown(KeyCode.Tab)
-            || TryGetButtonDown("Activate")
-            );
+        return Input.GetKeyDown(KeyCode.Tab) || TryGetButtonDown("Activate");
     }
+
     protected virtual bool IsTargetNextPressed()
     {
         return (Input.GetAxisRaw("TargetHorizontal") > 0.0f || (Input.GetKeyDown(KeyCode.Tab) && !Input.GetKey(KeyCode.LeftShift)));
@@ -229,34 +238,67 @@ public class TabTargeting : MonoBehaviour
                 UnTarget(selectedTarget);
             return;
         }
-        //if I am targeting, there are candidate objects within my radius, and current target is not null and the object is alive aka in the scene
-        if (IsTargetButtonPressed())
+
+        if (TryGetButtonDown("Activate"))
         {
             if (m_CandidateTargets.Count > 0)
             {
-                // On initial target, or if you hit the "confirm" button, choose the closest mob
-                if (TryGetButtonDown("Activate"))
-                {
-                    if (potentialTarget != null)
-                        Target(potentialTarget);
-                    else if (selectedTarget == null)
-                        TargetClosest();
-                    else
-                        Controller.Activate();
-                }
+                if (potentialTarget != null)
+                    Target(potentialTarget);
+                else if (selectedTarget == null)
+                    TargetClosest();
                 else
+                    Controller.Activate();
+            }
+            return;
+        }
+        if (Input.GetAxisRaw("TargetHorizontal") != 0.0f)
+        {
+            if (!horizontalTargetingInUse)
+            {
+                horizontalTargetingInUse = true;
+                if (m_CandidateTargets.Count > 0)
                 {
+                    Debug.Log("Target Next!");
                     if (potentialTarget == null && selectedTarget == null)
                         TargetClosest(true);
                     else
                         TargetNextBasedOnDirection();
                 }
             }
-            else
-            {
-                Debug.Log("No Entities to Target");
-            }
+            return;
+        }
+        else
+            horizontalTargetingInUse = false;
 
+
+        if (Input.GetAxisRaw("TargetVertical") != 0.0f)
+        {
+            if (!verticalTargetingInUse)
+            {
+                verticalTargetingInUse = true;
+                Debug.Log("Target Party!");
+                if (Controller.PlayerCharacterEntity.PartyId > 0)
+                {
+                    PartyData tempPartyData;
+                    Controller.PlayerCharacterEntity.CurrentGameManager.TryGetParty(Controller.PlayerCharacterEntity.PartyId, out tempPartyData);
+                    Debug.Log(tempPartyData);
+                }
+                return;
+            }
+        }
+        else
+            verticalTargetingInUse = false;
+
+        if (IsTargetButtonPressed())
+        {
+            if (m_CandidateTargets.Count > 0)
+            {
+                if (potentialTarget == null && selectedTarget == null)
+                    TargetClosest(true);
+                else
+                    TargetNextBasedOnDirection();
+            }
         }
     }
 
@@ -301,6 +343,9 @@ public class TabTargeting : MonoBehaviour
 
         for (var i = 0; i < Sorted_List.Count(); ++i)
         {
+            IDamageableEntity entity = Sorted_List[i].GetComponent<IDamageableEntity>();
+            if (entity != null && entity.IsHideOrDead())
+                continue;
             Vector2 screenPosition = Camera.main.WorldToScreenPoint(Sorted_List[i].transform.position);
             // Entity is within the screen (no targeting offscreen)
             if (screenPosition.x > 0 && screenPosition.x < Screen.width && screenPosition.y > 0 && screenPosition.y < Screen.height && Sorted_List[i].activeInHierarchy)
@@ -313,7 +358,8 @@ public class TabTargeting : MonoBehaviour
                 if (!didHit)
                 {
                     objectsInView.Add(Sorted_List[i]);
-                } else
+                }
+                else
                 {
                     Debug.Log("It hit " + hit.transform.name);
                 }
@@ -411,8 +457,8 @@ public class TabTargeting : MonoBehaviour
     protected virtual void AgentDies(BaseGameEntity agent)
     {
         m_CandidateTargets.Remove(agent.gameObject.gameObject);
-        if (castingOnTarget == agent.gameObject)
-            castingOnTarget = null;
+        if (castingTarget == agent.gameObject)
+            castingTarget = null;
         if (potentialTarget == agent.gameObject)
             UnHighlightPotentialTarget();
         UnTarget(agent.gameObject);

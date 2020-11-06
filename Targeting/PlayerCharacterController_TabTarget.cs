@@ -47,7 +47,7 @@ namespace MultiplayerARPG
             if (PlayerCharacterEntity == null || !PlayerCharacterEntity.IsOwnerClient)
                 return;
 
-            if (Targeting.SelectedTarget == null && Targeting.PotentialTarget == null && Targeting.castingOnTarget == null)
+            if (Targeting.SelectedTarget == null && Targeting.PotentialTarget == null && Targeting.CastingTarget == null)
                 ClearTarget();
             if (CacheGameplayCameraControls != null)
                 CacheGameplayCameraControls.target = CameraTargetTransform;
@@ -128,18 +128,59 @@ namespace MultiplayerARPG
             else if (targetWarpPortal != null)
                 PlayerCharacterEntity.CallServerEnterWarp(targetWarpPortal.ObjectId);
         }
+        protected GameObject cachePotentialTarget;
+        protected GameObject cacheSelectedTarget;
+        protected GameObject cacheCastingTarget;
 
+        protected BaseGameEntity CacheSelectedTarget
+        {
+            get
+            {
+                if (cacheSelectedTarget != Targeting.SelectedTarget)
+                    cacheSelectedTarget = Targeting.SelectedTarget;
+                return cacheSelectedTarget ? cacheSelectedTarget.GetComponent<BaseGameEntity>() : null;
+            }
+        }
+        protected BaseGameEntity CacheCastingTarget
+        {
+            get
+            {
+                if (cacheCastingTarget != Targeting.CastingTarget)
+                    cacheCastingTarget = Targeting.CastingTarget;
+                return cacheCastingTarget ? cacheCastingTarget.GetComponent<BaseGameEntity>() : null;
+            }
+        }
+        protected BaseGameEntity CachePotentialTarget
+        {
+            get
+            {
+                if (cachePotentialTarget != Targeting.PotentialTarget)
+                    cachePotentialTarget = Targeting.PotentialTarget;
+                return cachePotentialTarget ? cachePotentialTarget.GetComponent<BaseGameEntity>() : null;
+            }
+        }
+        protected BaseGameEntity CacheActionTarget
+        {
+            get
+            {
+                return CachePotentialTarget ?? CacheSelectedTarget;
+            }
+        }
         public virtual void TabTargetUpdateTarget()
         {
-            PlayerCharacterEntity.SetSubTarget(Targeting.PotentialTarget != null ? Targeting.PotentialTarget.GetComponent<BaseGameEntity>() : null);
-            PlayerCharacterEntity.SetCastingTarget(Targeting.castingOnTarget != null ? Targeting.castingOnTarget.GetComponent<BaseGameEntity>() : null);
-            PlayerCharacterEntity.SetTargetEntity(Targeting.SelectedTarget != null ? Targeting.SelectedTarget.GetComponent<BaseGameEntity>() : null);
+            bool hasChanged = cachePotentialTarget != Targeting.PotentialTarget || cacheSelectedTarget != Targeting.SelectedTarget;
+            PlayerCharacterEntity.SetSubTarget(CachePotentialTarget);
+            PlayerCharacterEntity.SetTargetEntity(CacheSelectedTarget);
+            PlayerCharacterEntity.SetCastingTarget(CacheCastingTarget);
 
-            GameObject target = (Targeting.PotentialTarget ?? Targeting.SelectedTarget);
-            SelectedEntity = Targeting.SelectedTarget != null ? Targeting.SelectedTarget.GetComponent<BaseGameEntity>() : null;
-            BaseGameEntity targetForUI = target != null ? target.GetComponent<BaseGameEntity>() : null;
+            SelectedEntity = CacheSelectedTarget;
             TargetEntity = SelectedEntity;
-            CacheUISceneGameplay.SetTargetEntity(targetForUI);
+            if (hasChanged)
+            {
+                Debug.Log("Change the UI" + CacheActionTarget);
+                CacheUISceneGameplay.SetTargetEntity(null);
+                CacheUISceneGameplay.SetTargetEntity(CacheActionTarget);
+            }
         }
 
         public virtual void TabTargetUpdateInput()
@@ -290,7 +331,7 @@ namespace MultiplayerARPG
                     }
                     else if (mouseUpOnTarget)
                     {
-                        if (Targeting.SelectedTarget && tempTransform.gameObject.GetComponent<BaseGameEntity>() == Targeting.SelectedTarget?.GetComponent<BaseGameEntity>())
+                        if (tempTransform.gameObject.GetComponent<BaseGameEntity>() == CacheSelectedTarget)
                         {
                             Activate();
                         }
@@ -353,8 +394,6 @@ namespace MultiplayerARPG
                 return;
             destination = null;
             BaseSkill skill = queueUsingSkill.skill;
-            GameObject targetObj = Targeting.PotentialTarget ?? Targeting.SelectedTarget;
-            BaseGameEntity target = targetObj ? targetObj.GetComponent<BaseGameEntity>() : null;
             Vector3? aimPosition = queueUsingSkill.aimPosition;
             if (skill.HasCustomAimControls())
             {
@@ -368,9 +407,9 @@ namespace MultiplayerARPG
             if (skill.IsAttack() || skill.RequiredTarget())
             {
                 // Let's stick to tab targeting instead of finding a random entity
-                if (target != null && target is BaseCharacterEntity)
+                if (CacheActionTarget != null && CacheActionTarget is BaseCharacterEntity)
                 {
-                    UseSkillOn(target);
+                    UseSkillOn(CacheActionTarget);
                     return;
                 }
                 ClearQueueUsingSkill();
@@ -382,9 +421,9 @@ namespace MultiplayerARPG
 
         private void UseSkillOn(BaseGameEntity target)
         {
-            Targeting.castingOnTarget = target.gameObject;
+            Targeting.CastingTarget = target.gameObject;
             if (Targeting.SelectedTarget == null)
-                Targeting.Target(Targeting.castingOnTarget);
+                Targeting.Target(Targeting.CastingTarget);
             Targeting.UnHighlightPotentialTarget();
             TabTargetUpdateTarget();
             TurnCharacterToPosition(target.transform.position);
