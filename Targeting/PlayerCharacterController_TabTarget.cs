@@ -40,12 +40,107 @@ namespace MultiplayerARPG
             }
         }
 
-        protected virtual void UpdateSelectedTarget()
+        protected void TabTargetUpdateWASDAttack()
         {
-            if (SelectedEntity?.gameObject != null && SelectedEntity.gameObject != Targeting.SelectedTarget)
+            destination = null;
+            BaseCharacterEntity targetEntity;
+
+            if (TryGetSelectedTargetAsAttackingEntity(out targetEntity))
+                SetTarget(targetEntity, TargetActionType.Attack, false);
+
+            if (targetEntity != null && !targetEntity.IsHideOrDead())
             {
-                Targeting.UnTarget(Targeting.SelectedTarget, false);
-                Targeting.Target(SelectedEntity.gameObject);
+                // Set target, then attack later when moved nearby target
+                SetTarget(targetEntity, TargetActionType.Attack, false);
+                isFollowingTarget = true;
+            }
+            else
+            {
+                // No nearby target, so attack immediately
+                if (PlayerCharacterEntity.CallServerAttack(isLeftHandAttacking))
+                    isLeftHandAttacking = !isLeftHandAttacking;
+                isFollowingTarget = false;
+            }
+        }
+
+        protected virtual void TabTargetUpdateQueuedSkill()
+        {
+            if (PlayerCharacterEntity.IsDead())
+            {
+                ClearQueueUsingSkill();
+                return;
+            }
+            if (queueUsingSkill.skill == null || queueUsingSkill.level <= 0)
+                return;
+            if (PlayerCharacterEntity.IsPlayingActionAnimation())
+                return;
+            destination = null;
+            BaseSkill skill = queueUsingSkill.skill;
+            short skillLevel = queueUsingSkill.level;
+            Vector3? aimPosition = queueUsingSkill.aimPosition;
+            BaseCharacterEntity targetEntity;
+            // Point click mode always lock on target
+            bool wasdLockAttackTarget = this.wasdLockAttackTarget || controllerMode == PlayerCharacterControllerMode.PointClick;
+
+            if (skill.HasCustomAimControls())
+            {
+                // Target not required, use skill immediately
+                TurnCharacterToPosition(aimPosition.Value);
+                RequestUsePendingSkill();
+                isFollowingTarget = false;
+                return;
+            }
+
+            if (skill.IsAttack())
+            {
+                RequestUsePendingSkill();
+                isFollowingTarget = false;
+            }
+            else
+            {
+                // Not attack skill, so use skill immediately
+                if (skill.RequiredTarget())
+                {
+                    if (wasdLockAttackTarget)
+                    {
+                        // Set target, then use skill later when moved nearby target
+                        if (TargetEntity != null && TargetEntity is BaseCharacterEntity)
+                        {
+                            SetTarget(TargetEntity, TargetActionType.UseSkill, false);
+                            isFollowingTarget = true;
+                        }
+                        else
+                        {
+                            ClearQueueUsingSkill();
+                            isFollowingTarget = false;
+                        }
+                    }
+                    else
+                    {
+                        // Try apply skill to selected entity immediately, it will fail if selected entity is far from the character
+                        if (TargetEntity != null && TargetEntity is BaseCharacterEntity)
+                        {
+                            if (TargetEntity != PlayerCharacterEntity)
+                            {
+                                // Look at target and use skill
+                                TurnCharacterToEntity(TargetEntity);
+                            }
+                            RequestUsePendingSkill();
+                            isFollowingTarget = false;
+                        }
+                        else
+                        {
+                            ClearQueueUsingSkill();
+                            isFollowingTarget = false;
+                        }
+                    }
+                }
+                else
+                {
+                    // Target not required, use skill immediately
+                    RequestUsePendingSkill();
+                    isFollowingTarget = false;
+                }
             }
         }
 

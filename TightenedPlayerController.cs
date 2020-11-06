@@ -11,23 +11,14 @@ public class TightenedPlayerController : PlayerCharacterController
 
     protected override void OnUseSkillOnEntity()
     {
-        subTarget = SelectedEntity;
+        Targeting.castingOnTarget = Targeting.PotentialTarget ?? Targeting.SelectedTarget;
     }
 
 
     // Update is called once per frame
     public override void UpdateInput()
     {
-        if (PlayerCharacterEntity.IsAttackingOrUsingSkill && PlayerCharacterEntity.GetTargetEntity() != subTarget)
-        {
-            PlayerCharacterEntity.SetTargetEntity(subTarget);
-        }
-        else if (subTarget != null && !PlayerCharacterEntity.IsAttackingOrUsingSkill && PlayerCharacterEntity.GetTargetEntity() == subTarget)
-        {
-            PlayerCharacterEntity.SetTargetEntity(SelectedEntity);
-            subTarget = null;
-        }
-
+        Targeting.UpdateTargeting();
         ClearQueuedSkillIfInSafeZone();
         InheritedUpdateInput();
     }
@@ -36,6 +27,7 @@ public class TightenedPlayerController : PlayerCharacterController
     {
         Debug.Log("clicked on ground!");
         // Disable click to move
+        Targeting.UnHighlightPotentialTarget();
         Targeting.UnTarget(Targeting.SelectedTarget);
     }
 
@@ -60,7 +52,6 @@ public class TightenedPlayerController : PlayerCharacterController
         // If it's building something, don't allow to activate NPC/Warp/Pickup Item
         if (ConstructingBuildingEntity == null)
         {
-            UpdateSelectedTarget();
             Targeting.HandleTargeting();
 
             if (InputManager.GetButtonDown("PickUpItem"))
@@ -97,11 +88,21 @@ public class TightenedPlayerController : PlayerCharacterController
         // Update enemy detecting radius to attack distance
         EnemyEntityDetector.detectingRadius = Mathf.Max(PlayerCharacterEntity.GetAttackDistance(false), wasdClearTargetDistance);
         // Update inputs
-        UpdateQueuedSkill();
+        TabTargetUpdateQueuedSkill();
         UpdatePointClickInput();
         UpdateWASDInput();
         // Set sprinting state
         PlayerCharacterEntity.SetExtraMovement(isSprinting ? ExtraMovementState.IsSprinting : ExtraMovementState.None);
+    }
+
+
+    protected override void SetTarget(BaseGameEntity entity, TargetActionType targetActionType, bool checkControllerMode = true)
+    {
+        targetPosition = null;
+        this.targetActionType = targetActionType;
+        destination = null;
+        TargetEntity = entity;
+        PlayerCharacterEntity.SetTargetEntity(entity);
     }
 
     protected virtual void PickUpItem()

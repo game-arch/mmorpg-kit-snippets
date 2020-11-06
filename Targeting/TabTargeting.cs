@@ -20,7 +20,10 @@ using MultiplayerARPG;
 public class TabTargeting : MonoBehaviour
 {
 
-    protected GameObject m_currentlySelectedTarget; //object your targeting
+    protected GameObject selectedTarget; //object your targeting
+    protected GameObject potentialTarget;
+    public GameObject castingOnTarget;
+
     protected readonly List<GameObject> m_CandidateTargets = new List<GameObject>(); //list of candidate game objects
     PlayerCharacterController controller;
     new SphereCollider collider;
@@ -31,26 +34,78 @@ public class TabTargeting : MonoBehaviour
     protected float recticleMoveTime = 0f;
     protected float recticleFinishTime = 0.5f;
 
+
+
+    public bool IsTargeting
+    {
+        get
+        {
+            return selectedTarget != null || potentialTarget != null;
+        }
+    }
     public GameObject SelectedTarget
     {
         get
         {
-            return m_currentlySelectedTarget;
+            return selectedTarget;
+        }
+    }
+    public GameObject PotentialTarget
+    {
+        get
+        {
+            return potentialTarget;
         }
     }
 
     protected bool targeting;
+
+
+    protected BasePlayerCharacterEntity playerEntity;
+
+    public BasePlayerCharacterEntity PlayerEntity
+    {
+        get
+        {
+            if (playerEntity == null)
+                playerEntity = BasePlayerCharacterController.Singleton.PlayerCharacterEntity;
+            return playerEntity;
+        }
+    }
+
+    public PlayerCharacterController Controller
+    {
+        get
+        {
+            if (controller == null)
+                controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
+            return controller;
+        }
+    }
+
+    public void UpdateTargeting()
+    {
+        if (castingOnTarget && !PlayerEntity.IsAttackingOrUsingSkill)
+            castingOnTarget = null;
+        BaseGameEntity actionTarget = (castingOnTarget ?? potentialTarget ?? selectedTarget)?.GetComponent<BaseGameEntity>();
+        if (Controller.SelectedEntity != actionTarget)
+        {
+           Controller.HandleTargetChange(actionTarget?.transform);
+        }
+    }
+
+
     void LateUpdate()
     {
         if (targetRecticle)
         {
-            if (m_currentlySelectedTarget != null)
+            if (potentialTarget != null)
             {
                 targeting = true;
                 recticleMoveTime += Time.deltaTime;
                 if (!targetRecticle.transform.GetChild(0).gameObject.activeSelf)
                     targetRecticle.transform.GetChild(0).gameObject.SetActive(true);
-                targetRecticle.transform.position = Vector3.Lerp(targetRecticle.transform.position, GetCenter(m_currentlySelectedTarget), recticleMoveTime / recticleFinishTime);
+                targetRecticle.transform.position = Vector3.Lerp(targetRecticle.transform.position, GetCenter(potentialTarget), recticleMoveTime / recticleFinishTime);
             }
             else
             {
@@ -91,13 +146,12 @@ public class TabTargeting : MonoBehaviour
     protected virtual void Start()
     {
 
-        controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
         gameObject.transform.localPosition = new Vector3(0, 0, 0);
         collider = gameObject.AddComponent<SphereCollider>();
-        collider.radius = Mathf.Max(BasePlayerCharacterController.OwningCharacter.GetAttackDistance(false), controller.TargetDistance);
+        collider.radius = Mathf.Max(BasePlayerCharacterController.OwningCharacter.GetAttackDistance(false), Controller.TargetDistance);
         collider.isTrigger = true;
         targetRecticle = GameObject.Find("Recticle");
-        targetRecticle = targetRecticle ?? Instantiate(controller.recticle, new Vector3(0, 0, 0), Quaternion.identity);
+        targetRecticle = targetRecticle != null ? targetRecticle : Instantiate(Controller.recticle, new Vector3(0, 0, 0), Quaternion.identity);
         targetRecticle.name = "Recticle";
     }
 
@@ -138,16 +192,17 @@ public class TabTargeting : MonoBehaviour
 
     protected virtual float GetAngle(GameObject go, Transform transForm = null)
     {
-        Transform origin = transForm ?? Camera.main.transform;
+        Transform origin = transForm != null ? transForm : Camera.main.transform;
         Vector3 target_direction = go.transform.position - origin.position; //get vector from player to target
         var camera_forward = new Vector2(Camera.main.transform.forward.x, Camera.main.transform.forward.z); //convert camera forward direction into 2D vector
         var target_dir = new Vector2(target_direction.x, target_direction.z); //do the same with target direction
         return Vector2.Angle(camera_forward, target_dir); //get the angle between the two vectors with higher being to the left and lower being to the right
     }
-    protected virtual void SelectNextTarget(List<GameObject> list, bool right = true)
+    protected virtual void PickNextTarget(List<GameObject> list, bool right = true)
     {
-        bool hasValidTarget = m_currentlySelectedTarget?.activeInHierarchy == true;
-        int index = hasValidTarget ? list.IndexOf(m_currentlySelectedTarget) : -1;
+        GameObject targetToCheck = (potentialTarget != null ? potentialTarget : selectedTarget);
+        bool hasValidTarget = targetToCheck?.activeInHierarchy == true;
+        int index = hasValidTarget ? list.IndexOf(targetToCheck) : -1;
         index = index > -1 && index < list.Count ? index : 0;
         if (right)
         {
@@ -155,22 +210,13 @@ public class TabTargeting : MonoBehaviour
         }
         else
         {
-            index = index - 1 > 0 ? index - 1 : list.Count - 1;
+            index = index - 1 >= 0 ? index - 1 : list.Count - 1;
         }
-        if (m_currentlySelectedTarget != null)
-        {
-            UnTarget(m_currentlySelectedTarget, false);
-        }
-        Target(list[index]);
+        HighlightPotentialTarget(list[index]);
     }
 
     public void HandleTargeting()
     {
-        if (controller == null)
-        {
-            controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
-            return;
-        }
         // remove null objects in the list and decrement the counter
         // Could optimize through some onDelete event system, probably really not worth
         for (int i = m_CandidateTargets.Count - 1; i >= 0; --i)
@@ -180,9 +226,13 @@ public class TabTargeting : MonoBehaviour
                 m_CandidateTargets.RemoveAt(i);
             }
         }
-        if (controller.SelectedEntity?.gameObject != null && controller.SelectedEntity != null && Input.GetKeyUp(KeyCode.Escape) && !controller.uisOpen)
+        if ((selectedTarget != null || potentialTarget != null) && Input.GetKeyUp(KeyCode.Escape) && !Controller.uisOpen)
         {
-            UnTarget(controller.SelectedEntity.gameObject);
+
+            if (potentialTarget != null)
+                UnHighlightPotentialTarget();
+            else
+                UnTarget(selectedTarget);
             return;
         }
         //if I am targeting, there are candidate objects within my radius, and current target is not null and the object is alive aka in the scene
@@ -193,10 +243,14 @@ public class TabTargeting : MonoBehaviour
                 // On initial target, or if you hit the "confirm" button, choose the closest mob
                 if (TryGetButtonDown("Activate"))
                 {
-                    if (m_currentlySelectedTarget == null)
+                    if (potentialTarget != null)
+                        Target(potentialTarget);
+                    else if (selectedTarget == null)
+                    {
                         TargetClosest();
+                    }
                     else
-                        controller.Activate();
+                        Controller.Activate();
                 }
                 else
                 {
@@ -216,7 +270,7 @@ public class TabTargeting : MonoBehaviour
         List<GameObject> objectsInView = SortObjectsInView(true);
         if (objectsInView.Count > 0)
         {
-            SelectNextTarget(objectsInView, IsTargetNextPressed());
+            PickNextTarget(objectsInView, IsTargetNextPressed());
         }
     }
 
@@ -227,16 +281,15 @@ public class TabTargeting : MonoBehaviour
         if (objectsInView.Count > 0)
         {
             Target(objectsInView.First());
-            m_currentlySelectedTarget = objectsInView.First();
+            selectedTarget = objectsInView.First();
         }
     }
 
     protected Vector3 GetCenter(GameObject go)
     {
-
-        Collider collider = go.GetComponentInChildren<Collider>();
-        Renderer renderer = go.GetComponentInChildren<Renderer>();
-        return collider?.bounds.center ?? renderer?.bounds.center ?? (go.transform.position + (Vector3.up * 5));
+        CapsuleCollider obj = go.GetComponentInChildren<CapsuleCollider>();
+        Debug.DrawLine(Controller.CacheGameplayCamera.transform.position, obj.bounds.center, Color.yellow);
+        return obj.bounds.center;
     }
 
     protected virtual List<GameObject> SortObjectsInView(bool cycling = false)
@@ -253,7 +306,7 @@ public class TabTargeting : MonoBehaviour
                 // MAKE SURE ALL NON-COLLIDING ENTITIES ARE OFF OF THE DEFAULT LAYER PLEASE
                 // If this does not work, change the layer for playercharactercontroller to Player or something
                 LayerMask mask = 1 << LayerMask.NameToLayer("Default") | 1 << LayerMask.NameToLayer("Building");
-                bool didHit = Physics.Linecast(Camera.main.transform.position, GetCenter(Sorted_List[i]), mask);
+                bool didHit = Physics.Linecast(Controller.CacheGameplayCamera.transform.position, GetCenter(Sorted_List[i]), mask);
                 if (!didHit)
                 {
                     objectsInView.Add(Sorted_List[i]);
@@ -284,6 +337,19 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
+    public virtual void HighlightPotentialTarget(GameObject enemy)
+    {
+        recticleMoveTime = 0;
+        if (enemy != null)
+            potentialTarget = enemy;
+    }
+    public virtual void UnHighlightPotentialTarget()
+    {
+        recticleMoveTime = 0;
+        if (potentialTarget != null)
+            potentialTarget = null;
+    }
+
 
     public virtual void Target(GameObject enemy)
     {
@@ -293,8 +359,9 @@ public class TabTargeting : MonoBehaviour
 
             if (agent != null)
             {
-                m_currentlySelectedTarget = enemy;
-                controller.HandleTargetChange(agent.transform);
+                selectedTarget = enemy;
+                if (potentialTarget == selectedTarget)
+                    potentialTarget = null;
                 if (agent is BaseCharacterEntity)
                 {
                     recticleMoveTime = 0;
@@ -314,21 +381,17 @@ public class TabTargeting : MonoBehaviour
 
             if (agent != null)
             {
-                if (controller.SelectedEntity == agent)
-                {
-                    controller.HandleTargetChange(null);
-                }
                 if (agent is BaseCharacterEntity)
                 {
                     BaseCharacterEntity character = agent as BaseCharacterEntity;
                     character.OnUnTargeted(GetComponent<BaseCharacterEntity>());
                     character.CharacterDied.RemoveListener(AgentDies);
                 }
-                if (m_currentlySelectedTarget == enemy)
+                if (selectedTarget == enemy)
                 {
                     if (deselect)
                     {
-                        m_currentlySelectedTarget = null;
+                        selectedTarget = null;
                         targeting = false;
                     }
                     recticleMoveTime = 0;
@@ -342,5 +405,6 @@ public class TabTargeting : MonoBehaviour
         m_CandidateTargets.Remove(agent.gameObject.gameObject);
         UnTarget(agent.gameObject);
     }
+
 
 }

@@ -40,10 +40,6 @@ namespace MultiplayerARPG
             if (Input.GetKeyDown(KeyCode.Escape) && orderedUIs.Count > 0)
             {
                 UIOrdering lastUi = orderedUIs.Last();
-                if (lastUi.uiType.ToLower() == "target")
-                {
-                    Controller.Targeting.UnTarget(Controller.Targeting.SelectedTarget);
-                }
                 lastUi.Hide();
                 Debug.Log(lastUi.name + " was closed!");
                 foreach (UIOrdering peer in lastUi.closePeersOnEscape)
@@ -51,7 +47,7 @@ namespace MultiplayerARPG
                     peer.Hide();
                 }
             }
-            else if (Input.GetKeyDown(KeyCode.Escape))
+            else if (Input.GetKeyDown(KeyCode.Escape) && !Controller.Targeting.IsTargeting)
             {
                 uiSystemDialog.Show();
             }
