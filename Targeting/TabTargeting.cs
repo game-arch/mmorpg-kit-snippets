@@ -106,7 +106,8 @@ public class TabTargeting : MonoBehaviour
             {
                 if (targetRecticle.transform.GetChild(0).gameObject.activeSelf)
                     targetRecticle.transform.GetChild(0).gameObject.SetActive(false);
-                targetRecticle.transform.position = GetCenter(BasePlayerCharacterController.OwningCharacter.gameObject);
+                if (selectedTarget == null && potentialTarget == null)
+                    targetRecticle.transform.position = GetCenter(BasePlayerCharacterController.OwningCharacter.gameObject);
             }
         }
     }
