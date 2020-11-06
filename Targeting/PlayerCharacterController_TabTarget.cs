@@ -59,6 +59,23 @@ namespace MultiplayerARPG
             }
         }
 
+        public virtual void TabTargetUpdateTarget()
+        {
+            
+            Debug.Log("Casting: " + PlayerCharacterEntity.GetCastingTargetEntity()?.gameObject.transform.position);
+            Debug.Log("SubTarget: " + PlayerCharacterEntity.GetSubTargetEntity()?.gameObject.transform.position);
+            //Debug.Log("MainTarget: " + PlayerCharacterEntity.GetTargetEntity()?.gameObject.transform.position);
+            PlayerCharacterEntity.SetSubTarget(Targeting.PotentialTarget != null ? Targeting.PotentialTarget.GetComponent<BaseGameEntity>() : null);
+            PlayerCharacterEntity.SetCastingTarget(Targeting.castingOnTarget != null ? Targeting.castingOnTarget.GetComponent<BaseGameEntity>() : null);
+            PlayerCharacterEntity.SetTargetEntity(Targeting.SelectedTarget != null ? Targeting.SelectedTarget.GetComponent<BaseGameEntity>() : null);
+
+            GameObject target = (Targeting.PotentialTarget ?? Targeting.SelectedTarget);
+            SelectedEntity = Targeting.SelectedTarget != null ? Targeting.SelectedTarget.GetComponent<BaseGameEntity>() : null;
+            BaseGameEntity targetForUI = target != null ? target.GetComponent<BaseGameEntity>() : null;
+            TargetEntity = SelectedEntity;
+            CacheUISceneGameplay.SetTargetEntity(targetForUI);
+        }
+
         public virtual void TabTargetUpdateInput()
         {
             bool isFocusInputField = GenericUtils.IsFocusInputField() || UIElementUtils.IsUIElementActive();
@@ -285,10 +302,9 @@ namespace MultiplayerARPG
                 return;
             destination = null;
             BaseSkill skill = queueUsingSkill.skill;
-            Vector3? aimPosition = queueUsingSkill.aimPosition;
-            Debug.Log(Targeting.PotentialTarget + " " + Targeting.SelectedTarget);
             GameObject targetObj = Targeting.PotentialTarget ?? Targeting.SelectedTarget;
             BaseGameEntity target = targetObj ? targetObj.GetComponent<BaseGameEntity>() : null;
+            Vector3? aimPosition = queueUsingSkill.aimPosition;
             if (skill.HasCustomAimControls())
             {
                 // Target not required, use skill immediately
@@ -298,45 +314,26 @@ namespace MultiplayerARPG
                 return;
             }
 
-            if (skill.IsAttack())
+            if (skill.IsAttack() || skill.RequiredTarget())
             {
                 // Let's stick to tab targeting instead of finding a random entity
                 if (target != null && target is BaseCharacterEntity)
                 {
-                    SetTarget(target, TargetActionType.UseSkill, false);
+                    Targeting.castingOnTarget = target.gameObject;
+                    if (Targeting.SelectedTarget == null)
+                        Targeting.Target(Targeting.castingOnTarget);
+                    if (Targeting.castingOnTarget == Targeting.PotentialTarget)
+                        Targeting.UnHighlightPotentialTarget();
+                    TabTargetUpdateTarget();
+                    TurnCharacterToPosition(target.transform.position);
                     RequestUsePendingSkill();
-                    isFollowingTarget = false;
+                    return;
                 }
-                else
-                {
-                    ClearQueueUsingSkill();
-                    isFollowingTarget = false;
-                }
+                ClearQueueUsingSkill();
+                return;
             }
-            else
-            {
-                // Not attack skill, so use skill immediately
-                if (skill.RequiredTarget())
-                {
-                    // Set target, then use skill later when moved nearby target
-                    if (target != null && target is BaseCharacterEntity)
-                    {
-                        RequestUsePendingSkill();
-                    }
-                    else
-                    {
-                        ClearQueueUsingSkill();
-                        isFollowingTarget = false;
-                    }
-                }
-                else
-                {
-
-                    // Target not required, use skill immediately
-                    RequestUsePendingSkill();
-                    isFollowingTarget = false;
-                }
-            }
+            // Target not required, use skill immediately
+            RequestUsePendingSkill();
         }
 
 
@@ -351,54 +348,102 @@ namespace MultiplayerARPG
                 targetHarvestable = tempTransform.GetComponent<HarvestableEntity>();
                 targetBuilding = null;
                 targetVehicle = tempTransform.GetComponent<VehicleEntity>();
-                if (targetPlayer)
-                {
-                    // Found activating entity as player character entity
-                    if (!targetPlayer.IsHideOrDead() && !targetPlayer.IsAlly(PlayerCharacterEntity))
-                        SetTarget(targetPlayer, TargetActionType.Attack);
-                    else
-                        SetTarget(targetPlayer, TargetActionType.Activate);
-                }
-                else if (targetMonster && !targetMonster.IsHideOrDead())
-                {
-                    // Found activating entity as monster character entity
-                    SetTarget(targetMonster, TargetActionType.Attack);
-                }
-                else if (targetNpc)
-                {
-                    // Found activating entity as npc entity
-                    SetTarget(targetNpc, TargetActionType.Activate);
-                }
-                else if (targetItemDrop)
-                {
-                    // Found activating entity as item drop entity
-                    SetTarget(targetItemDrop, TargetActionType.Activate);
-                }
-                else if (targetHarvestable && !targetHarvestable.IsDead())
-                {
-                    // Found activating entity as harvestable entity
-                    SetTarget(targetHarvestable, TargetActionType.Attack);
-                }
-                else if (targetBuilding && !targetBuilding.IsDead() && targetBuilding.Activatable)
-                {
-                    // Found activating entity as building entity
-                    SetTarget(targetBuilding, TargetActionType.Activate);
-                }
-                else if (targetVehicle)
-                {
-                    // Found activating entity as vehicle entity
-                    SetTarget(targetVehicle, TargetActionType.Activate);
-                }
-                else
-                {
-                    SetTarget(null, TargetActionType.Attack);
-                    isFollowingTarget = false;
-                }
+                return;
             }
-            else
+            isFollowingTarget = false;
+        }
+
+        public void TabTargetUpdateFollowTarget()
+        {
+            if (!isFollowingTarget)
+                return;
+
+            if (TryGetAttackingEntity(out targetDamageable))
             {
-                SetTarget(null, TargetActionType.Attack);
-                isFollowingTarget = false;
+                if (targetDamageable.IsHideOrDead())
+                {
+                    ClearQueueUsingSkill();
+                    PlayerCharacterEntity.StopMove();
+                    ClearTarget();
+                    Targeting.UnTarget(Targeting.SelectedTarget);
+                    return;
+                }
+                float attackDistance = 0f;
+                float attackFov = 0f;
+                GetAttackDistanceAndFov(isLeftHandAttacking, out attackDistance, out attackFov);
+                AttackOrMoveToEntity(targetDamageable, attackDistance, CurrentGameInstance.characterLayer.Mask);
+            }
+            else if (TryGetUsingSkillEntity(out targetDamageable))
+            {
+                if (queueUsingSkill.skill.IsAttack() && targetDamageable.IsHideOrDead())
+                {
+                    ClearQueueUsingSkill();
+                    PlayerCharacterEntity.StopMove();
+                    ClearTarget();
+                    Targeting.UnTarget(Targeting.SelectedTarget);
+                    return;
+                }
+                float castDistance = 0f;
+                float castFov = 0f;
+                GetUseSkillDistanceAndFov(isLeftHandAttacking, out castDistance, out castFov);
+                UseSkillOrMoveToEntity(targetDamageable, castDistance);
+            }
+            else if (TryGetDoActionEntity(out targetPlayer))
+            {
+                DoActionOrMoveToEntity(targetPlayer, CurrentGameInstance.conversationDistance, () =>
+                {
+                    // TODO: Do something
+                });
+            }
+            else if (TryGetDoActionEntity(out targetNpc))
+            {
+                DoActionOrMoveToEntity(targetNpc, CurrentGameInstance.conversationDistance, () =>
+                {
+                    if (!didActionOnTarget)
+                    {
+                        didActionOnTarget = true;
+                        PlayerCharacterEntity.CallServerNpcActivate(targetNpc.ObjectId);
+                    }
+                });
+            }
+            else if (TryGetDoActionEntity(out targetItemDrop))
+            {
+                DoActionOrMoveToEntity(targetItemDrop, CurrentGameInstance.pickUpItemDistance, () =>
+                {
+                    PlayerCharacterEntity.CallServerPickupItem(targetItemDrop.ObjectId);
+                    ClearTarget();
+                });
+            }
+            else if (TryGetDoActionEntity(out targetBuilding, TargetActionType.Activate))
+            {
+                DoActionOrMoveToEntity(targetBuilding, CurrentGameInstance.conversationDistance, () =>
+                {
+                    if (!didActionOnTarget)
+                    {
+                        didActionOnTarget = true;
+                        ActivateBuilding(targetBuilding);
+                    }
+                });
+            }
+            else if (TryGetDoActionEntity(out targetBuilding, TargetActionType.ViewOptions))
+            {
+                DoActionOrMoveToEntity(targetBuilding, CurrentGameInstance.conversationDistance, () =>
+                {
+                    if (!didActionOnTarget)
+                    {
+                        didActionOnTarget = true;
+                        ShowCurrentBuildingDialog();
+                    }
+                });
+            }
+            else if (TryGetDoActionEntity(out targetVehicle))
+            {
+                DoActionOrMoveToEntity(targetVehicle, CurrentGameInstance.conversationDistance, () =>
+                {
+                    PlayerCharacterEntity.CallServerEnterVehicle(targetVehicle.ObjectId);
+                    ClearTarget();
+                    Targeting.UnTarget(Targeting.SelectedTarget);
+                });
             }
         }
     }

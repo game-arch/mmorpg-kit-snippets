@@ -9,12 +9,6 @@ using System.Collections.Generic;
 public class TightenedPlayerController : PlayerCharacterController
 {
 
-    protected override void OnUseSkillOnEntity()
-    {
-        Targeting.castingOnTarget = Targeting.PotentialTarget ?? Targeting.SelectedTarget;
-        if (Targeting.SelectedTarget == null)
-            Targeting.Target(Targeting.castingOnTarget);
-    }
 
 
     protected override void Update()
@@ -44,11 +38,7 @@ public class TightenedPlayerController : PlayerCharacterController
         }
         else
         {
-            GameObject target = (Targeting.castingOnTarget ?? Targeting.PotentialTarget ?? Targeting.SelectedTarget);
-            SelectedEntity = target != null ? target.GetComponent<BaseGameEntity>() : null;
-            TargetEntity = SelectedEntity;
-            CacheUISceneGameplay.SetTargetEntity(SelectedEntity);
-            PlayerCharacterEntity.SetTargetEntity(SelectedEntity);
+            TabTargetUpdateTarget();
         }
 
         if (destination.HasValue)
@@ -59,15 +49,10 @@ public class TightenedPlayerController : PlayerCharacterController
                 destination = null;
         }
 
-        UpdateInput();
-        UpdateFollowTarget();
-    }
-    // Update is called once per frame
-    public override void UpdateInput()
-    {
         Targeting.UpdateTargeting();
         ClearQueuedSkillIfInSafeZone();
         TabTargetUpdateInput();
+        TabTargetUpdateFollowTarget();
     }
 
     protected override void OnPointClickOnGround(Vector3 targetPosition)
