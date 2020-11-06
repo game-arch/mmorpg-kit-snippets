@@ -397,6 +397,10 @@ public class TabTargeting : MonoBehaviour
     protected virtual void AgentDies(BaseGameEntity agent)
     {
         m_CandidateTargets.Remove(agent.gameObject.gameObject);
+        if (castingOnTarget == agent.gameObject)
+            castingOnTarget = null;
+        if (potentialTarget == agent.gameObject)
+            UnHighlightPotentialTarget();
         UnTarget(agent.gameObject);
     }
 
