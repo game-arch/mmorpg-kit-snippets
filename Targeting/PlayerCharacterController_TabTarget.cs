@@ -42,6 +42,8 @@ namespace MultiplayerARPG
 
         public virtual void Activate()
         {
+            if (Targeting.SelectedTarget?.GetComponent<BaseCharacterEntity>() != null)
+                this.targetActionType = TargetActionType.Attack;
             isFollowingTarget = true;
         }
 
@@ -110,9 +112,9 @@ namespace MultiplayerARPG
             // Update enemy detecting radius to attack distance
             EnemyEntityDetector.detectingRadius = Mathf.Max(PlayerCharacterEntity.GetAttackDistance(false), wasdClearTargetDistance);
             // Update inputs
-            UpdateQueuedSkill();
+            TabTargetUpdateQueuedSkill();
             TabTargetUpdatePointClickInput();
-            UpdateWASDInput();
+            TabTargetUpdateWASDInput();
             // Set sprinting state
             PlayerCharacterEntity.SetExtraMovement(isSprinting ? ExtraMovementState.IsSprinting : ExtraMovementState.None);
         }
@@ -285,7 +287,8 @@ namespace MultiplayerARPG
             BaseSkill skill = queueUsingSkill.skill;
             Vector3? aimPosition = queueUsingSkill.aimPosition;
             Debug.Log(Targeting.PotentialTarget + " " + Targeting.SelectedTarget);
-            BaseGameEntity target = (Targeting.PotentialTarget ?? Targeting.SelectedTarget)?.GetComponent<BaseGameEntity>();
+            GameObject targetObj = Targeting.PotentialTarget ?? Targeting.SelectedTarget;
+            BaseGameEntity target = targetObj ? targetObj.GetComponent<BaseGameEntity>() : null;
             if (skill.HasCustomAimControls())
             {
                 // Target not required, use skill immediately

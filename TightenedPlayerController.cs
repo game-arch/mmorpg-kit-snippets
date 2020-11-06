@@ -44,6 +44,9 @@ public class TightenedPlayerController : PlayerCharacterController
         }
         else
         {
+            GameObject target = (Targeting.castingOnTarget ?? Targeting.PotentialTarget ?? Targeting.SelectedTarget);
+            SelectedEntity = target != null ? target.GetComponent<BaseGameEntity>() : null;
+            TargetEntity = SelectedEntity;
             CacheUISceneGameplay.SetTargetEntity(SelectedEntity);
             PlayerCharacterEntity.SetTargetEntity(SelectedEntity);
         }
@@ -63,7 +66,6 @@ public class TightenedPlayerController : PlayerCharacterController
     public override void UpdateInput()
     {
         Targeting.UpdateTargeting();
-        SelectedEntity = (Targeting.castingOnTarget ?? Targeting.PotentialTarget ?? Targeting.SelectedTarget)?.GetComponent<BaseGameEntity>();
         ClearQueuedSkillIfInSafeZone();
         TabTargetUpdateInput();
     }

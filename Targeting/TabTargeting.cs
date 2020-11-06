@@ -196,7 +196,7 @@ public class TabTargeting : MonoBehaviour
     protected virtual void PickNextTarget(List<GameObject> list, bool right = true)
     {
         GameObject targetToCheck = (potentialTarget != null ? potentialTarget : selectedTarget);
-        bool hasValidTarget = targetToCheck?.activeInHierarchy == true;
+        bool hasValidTarget = targetToCheck ? targetToCheck?.activeInHierarchy == true : false;
         int index = hasValidTarget ? list.IndexOf(targetToCheck) : -1;
         index = index > -1 && index < list.Count ? index : 0;
         if (right)
