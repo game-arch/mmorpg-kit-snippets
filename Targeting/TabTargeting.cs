@@ -214,12 +214,12 @@ public class TabTargeting : MonoBehaviour
         }
         else
         {
-            index = index - 1 >= 0 ? index - 1 : list.Count - 1;
+            index = index - 1 >= 0 ? index - 1 : (list.Count > 0 ? list.Count - 1 : 0);
         }
         HighlightPotentialTarget(list[index]);
     }
 
-    public void HandleTargeting()
+    public virtual void HandleTargeting()
     {
         // remove null objects in the list and decrement the counter
         // Could optimize through some onDelete event system, probably really not worth
@@ -259,7 +259,6 @@ public class TabTargeting : MonoBehaviour
                 horizontalTargetingInUse = true;
                 if (m_CandidateTargets.Count > 0)
                 {
-                    Debug.Log("Target Next!");
                     if (potentialTarget == null && selectedTarget == null)
                         TargetClosest(true);
                     else
@@ -282,7 +281,13 @@ public class TabTargeting : MonoBehaviour
                 {
                     PartyData tempPartyData;
                     Controller.PlayerCharacterEntity.CurrentGameManager.TryGetParty(Controller.PlayerCharacterEntity.PartyId, out tempPartyData);
-                    Debug.Log(tempPartyData);
+                    SocialCharacterData[] members;
+                    tempPartyData.GetSortedMembers(out members);
+                    PickNextTarget(GetPartyMembersInView(members), Input.GetAxisRaw("TargetVertical") > 0.0f);
+                }
+                else
+                {
+                    HighlightPotentialTarget(Controller.PlayerCharacterEntity.gameObject);
                 }
                 return;
             }
@@ -329,13 +334,29 @@ public class TabTargeting : MonoBehaviour
         }
     }
 
-    protected Vector3 GetCenter(GameObject go)
+    protected virtual Vector3 GetCenter(GameObject go)
     {
         CapsuleCollider obj = go.GetComponentInChildren<CapsuleCollider>();
         Debug.DrawLine(Controller.CacheGameplayCamera.transform.position, obj.bounds.center, Color.yellow);
         return obj.bounds.center;
     }
-
+    protected virtual List<GameObject> GetPartyMembersInView(SocialCharacterData[] partyMembers)
+    {
+        List<GameObject> party = new List<GameObject>();
+        foreach (SocialCharacterData partyMember in partyMembers)
+        {
+            for (int i = 0; i < m_CandidateTargets.Count; i++)
+            {
+                BasePlayerCharacterEntity entity = m_CandidateTargets[i].GetComponent<BasePlayerCharacterEntity>();
+                if (entity != null)
+                {
+                    if (entity.DataId == partyMember.dataId)
+                        party.Add(entity.gameObject);
+                }
+            }
+        }
+        return party;
+    }
     protected virtual List<GameObject> SortObjectsInView(bool cycling = false)
     {
         List<GameObject> Sorted_List = m_CandidateTargets.OrderBy(go => GetSortWeight(go, cycling)).ToList();
@@ -353,15 +374,10 @@ public class TabTargeting : MonoBehaviour
                 // MAKE SURE ALL NON-COLLIDING ENTITIES ARE OFF OF THE DEFAULT LAYER PLEASE
                 // If this does not work, change the layer for playercharactercontroller to Player or something
                 LayerMask mask = 1 << LayerMask.NameToLayer("Default") | 1 << LayerMask.NameToLayer("Building");
-                RaycastHit hit;
-                bool didHit = Physics.Linecast(Controller.CacheGameplayCamera.transform.position, GetCenter(Sorted_List[i]), out hit, mask);
+                bool didHit = Physics.Linecast(Controller.CacheGameplayCamera.transform.position, GetCenter(Sorted_List[i]), mask);
                 if (!didHit)
                 {
                     objectsInView.Add(Sorted_List[i]);
-                }
-                else
-                {
-                    Debug.Log("It hit " + hit.transform.name);
                 }
             }
         }

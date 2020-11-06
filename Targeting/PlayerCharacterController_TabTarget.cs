@@ -177,7 +177,6 @@ namespace MultiplayerARPG
             TargetEntity = SelectedEntity;
             if (hasChanged)
             {
-                Debug.Log("Change the UI" + CacheActionTarget);
                 CacheUISceneGameplay.SetTargetEntity(null);
                 CacheUISceneGameplay.SetTargetEntity(CacheActionTarget);
             }
@@ -521,7 +520,6 @@ namespace MultiplayerARPG
             targetActionType = TargetActionType.Attack;
             if (isAutoAttacking && CanAttack(out targetDamageable))
             {
-                Debug.Log("auto attacking");
                 if (targetDamageable.IsHideOrDead())
                 {
                     ClearQueueUsingSkill();
