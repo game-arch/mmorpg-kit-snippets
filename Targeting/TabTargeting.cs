@@ -216,7 +216,7 @@ public class TabTargeting : MonoBehaviour
                 index += right ? 1 : -1;
                 if (index < 0)
                     index = list.Count - 1;
-                if (index > list.Count)
+                if (index > list.Count - 1)
                     index = 0;
                 HighlightPotentialTarget(list[index]);
             }
