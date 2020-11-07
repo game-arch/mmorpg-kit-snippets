@@ -206,17 +206,21 @@ public class TabTargeting : MonoBehaviour
     {
         GameObject targetToCheck = (potentialTarget != null ? potentialTarget : selectedTarget);
         bool hasValidTarget = targetToCheck ? targetToCheck?.activeInHierarchy == true : false;
-        int index = hasValidTarget ? list.IndexOf(targetToCheck) : -1;
-        index = index > -1 && index < list.Count ? index : 0;
-        if (right)
+        int index = hasValidTarget ? list.IndexOf(targetToCheck) : 0;
+        if (list.Count > 0)
         {
-            index = index + 1 < list.Count ? index + 1 : 0;
+            if (!hasValidTarget)
+                HighlightPotentialTarget(list[0]);
+            else
+            {
+                index += right ? 1 : -1;
+                if (index < 0)
+                    index = list.Count - 1;
+                if (index > list.Count)
+                    index = 0;
+                HighlightPotentialTarget(list[index]);
+            }
         }
-        else
-        {
-            index = index - 1 >= 0 ? index - 1 : (list.Count > 0 ? list.Count - 1 : 0);
-        }
-        HighlightPotentialTarget(list[index]);
     }
 
     public virtual void HandleTargeting()
@@ -336,16 +340,15 @@ public class TabTargeting : MonoBehaviour
     protected virtual Vector3 GetCenter(GameObject go)
     {
         CapsuleCollider obj = go.GetComponentInChildren<CapsuleCollider>();
-        Debug.DrawLine(Controller.CacheGameplayCamera.transform.position, obj.bounds.center, Color.yellow);
-        return obj.bounds.center;
+        return obj != null ? obj.bounds.center : go.transform.position;
     }
     protected virtual List<GameObject> GetPartyMembersInView(SocialCharacterData[] partyMembers)
     {
         List<GameObject> party = new List<GameObject>();
         party.Add(Controller.PlayerCharacterEntity.gameObject);
-        foreach (SocialCharacterData partyMember in partyMembers)
+        for (int i = 0; i < m_CandidateTargets.Count; i++)
         {
-            for (int i = 0; i < m_CandidateTargets.Count; i++)
+            foreach (SocialCharacterData partyMember in partyMembers)
             {
                 BasePlayerCharacterEntity entity = m_CandidateTargets[i].GetComponent<BasePlayerCharacterEntity>();
                 if (entity != null)
@@ -364,8 +367,9 @@ public class TabTargeting : MonoBehaviour
 
         for (var i = 0; i < Sorted_List.Count(); ++i)
         {
-            IDamageableEntity entity = Sorted_List[i].GetComponent<IDamageableEntity>();
-            if (entity != null && entity.IsHideOrDead())
+            IDamageableEntity damageable = Sorted_List[i].GetComponent<IDamageableEntity>();
+            BaseGameEntity agent = Sorted_List[i].GetComponentInParent<BaseGameEntity>();
+            if (agent == null || damageable == null || damageable.IsHideOrDead())
                 continue;
             Vector2 screenPosition = Camera.main.WorldToScreenPoint(Sorted_List[i].transform.position);
             // Entity is within the screen (no targeting offscreen)
@@ -387,11 +391,15 @@ public class TabTargeting : MonoBehaviour
 
     protected virtual void OnTriggerEnter(Collider other)
     {
-        if (other.tag == "MonsterTag" || other.tag == "HarvestableTag" || other.tag == "NpcTag")
+        if (other.tag == "MonsterTag" || other.tag == "HarvestableTag" || other.tag == "NpcTag" || other.tag == "PlayerTag")
         {
             if (other.gameObject.activeInHierarchy)
             {
-                m_CandidateTargets.Add(other.gameObject);
+                BaseGameEntity agent = other.gameObject.GetComponent<BaseGameEntity>();
+                if (agent != null)
+                {
+                    m_CandidateTargets.Add(other.gameObject);
+                }
             }
         }
     }
