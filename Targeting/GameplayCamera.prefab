@@ -27,8 +27,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1278824955568960}
-  m_LocalRotation: {x: 0.19158915, y: 0, z: 0, w: 0.98147523}
-  m_LocalPosition: {x: 0, y: 5.2249093, z: -12.873149}
+  m_LocalRotation: {x: 0.126158, y: -0.8014889, z: 0.18202819, w: 0.5554867}
+  m_LocalPosition: {x: 13.878535, y: 7.0985656, z: 5.2029953}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4108299210592674}
@@ -93,10 +93,10 @@ MonoBehaviour:
   targetCamera: {fileID: 20186615803325660}
   target: {fileID: 0}
   targetOffset: {x: 0, y: 2.5, z: 0}
-  xRotation: 22.09108
-  yRotation: 20.783852
+  xRotation: 25.59108
+  yRotation: -110.55078
   useTargetYRotation: 0
-  zoomDistance: 13.893079
+  zoomDistance: 16.433945
   zoomByAspectRatio: 0
   zoomByAspectRatioSettings:
   - width: 16
@@ -145,16 +145,16 @@ MonoBehaviour:
   startZoomDistance: 3
   zoomSpeed: -5
   zoomSpeedScale: 0.57
-  enableAimAssist: 0
+  enableAimAssist: 1
   enableAimAssistX: 0
-  enableAimAssistY: 0
+  enableAimAssistY: 1
   aimAssistRadius: 100
   aimAssistDistance: 100
   aimAssistLayerMask:
     serializedVersion: 2
     m_Bits: 524288
-  aimAssistXSpeed: 20
-  aimAssistYSpeed: 20
+  aimAssistXSpeed: 60
+  aimAssistYSpeed: 60
   aimAssistAngleLessThan: 360
   isSaveCamera: 1
   savePrefsPrefix: GAMEPLAY

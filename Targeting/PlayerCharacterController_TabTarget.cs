@@ -271,12 +271,6 @@ namespace MultiplayerARPG
                 case DimensionType.Dimension3D:
                     Vector3 forward = CacheGameplayCameraTransform.forward;
                     Vector3 right = CacheGameplayCameraTransform.right;
-                    if (Targeting.SelectedTarget && Targeting.focusingTarget)
-                    {
-                        PlayerCharacterEntity.transform.LookAt(Targeting.SelectedTarget.transform);
-                        forward = PlayerCharacterEntity.transform.forward;
-                        right = PlayerCharacterEntity.transform.right;
-                    }
                     forward.y = 0f;
                     right.y = 0f;
                     forward.Normalize();
