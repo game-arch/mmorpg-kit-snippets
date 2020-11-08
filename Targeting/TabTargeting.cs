@@ -31,10 +31,13 @@ public class TabTargeting : MonoBehaviour
     public bool sortByDistance = true;
 
     protected GameObject targetRecticle;
+    protected GameObject aimAssistTarget;
     protected float recticleMoveTime = 0f;
     protected float recticleFinishTime = 0.5f;
     protected bool verticalTargetingInUse;
     protected bool horizontalTargetingInUse;
+
+    protected bool focusingTarget;
 
 
 
@@ -102,6 +105,18 @@ public class TabTargeting : MonoBehaviour
             castingTarget = null;
     }
 
+    private void Update()
+    {
+        if (InputManager.GetButtonDown("FocusTarget"))
+        {
+            focusingTarget = !focusingTarget;
+        }
+        if (!selectedTarget)
+        {
+            focusingTarget = false;
+        }
+    }
+
 
     void LateUpdate()
     {
@@ -123,9 +138,18 @@ public class TabTargeting : MonoBehaviour
                     targetRecticle.transform.position = GetCenter(BasePlayerCharacterController.OwningCharacter.gameObject);
             }
         }
-        if (selectedTarget)
+        if (Controller.aimAssistTarget)
         {
-
+            if (selectedTarget && focusingTarget)
+            {
+                aimAssistTarget.transform.position = GetCenter(selectedTarget);
+                aimAssistTarget.SetActive(true);
+                Controller.CacheGameplayCamera.transform.LookAt(aimAssistTarget.transform);
+            }
+            else
+            {
+                aimAssistTarget.SetActive(false);
+            }
         }
     }
 
@@ -161,6 +185,14 @@ public class TabTargeting : MonoBehaviour
         targetRecticle = GameObject.Find("Recticle");
         targetRecticle = targetRecticle != null ? targetRecticle : Instantiate(Controller.recticle, new Vector3(0, 0, 0), Quaternion.identity);
         targetRecticle.name = "Recticle";
+        if (Controller.aimAssistTarget)
+        {
+            aimAssistTarget = GameObject.Find("AimAssistTarget");
+            aimAssistTarget = aimAssistTarget != null ? aimAssistTarget : Instantiate(Controller.aimAssistTarget, new Vector3(0, 0, 0), Quaternion.identity);
+            aimAssistTarget.name = "AimAssistTarget";
+            aimAssistTarget.SetActive(false);
+        }
+
     }
 
     protected virtual float GetDistanceWeight(GameObject go)

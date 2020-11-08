@@ -9,6 +9,7 @@ namespace MultiplayerARPG
     {
 
         public GameObject recticle;
+        public GameObject aimAssistTarget;
         public bool uisOpen;
         public LayerMask TabTargetIgnoreLayers;
 
