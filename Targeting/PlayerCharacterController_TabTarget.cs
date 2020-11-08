@@ -243,7 +243,7 @@ namespace MultiplayerARPG
             {
                 // If mobile platforms, don't receive input raw to make it smooth
                 bool raw = !InputManager.useMobileInputOnNonMobile && !Application.isMobilePlatform;
-                Vector3 moveDirection = GetMoveDirection(InputManager.GetAxis("Horizontal", raw), InputManager.GetAxis("Vertical", raw));
+                Vector3 moveDirection = TabTargetGetMoveDirection(InputManager.GetAxis("Horizontal", raw), InputManager.GetAxis("Vertical", raw));
                 moveDirection.Normalize();
 
                 // Move
@@ -262,6 +262,36 @@ namespace MultiplayerARPG
                     movementState |= MovementState.IsJump;
                 PlayerCharacterEntity.KeyMovement(moveDirection, movementState);
             }
+        }
+        public Vector3 TabTargetGetMoveDirection(float horizontalInput, float verticalInput)
+        {
+            Vector3 moveDirection = Vector3.zero;
+            switch (CurrentGameInstance.DimensionType)
+            {
+                case DimensionType.Dimension3D:
+                    Vector3 forward = CacheGameplayCameraTransform.forward;
+                    Vector3 right = CacheGameplayCameraTransform.right;
+                    if (Targeting.SelectedTarget && Targeting.focusingTarget)
+                    {
+                        PlayerCharacterEntity.transform.LookAt(Targeting.SelectedTarget.transform);
+                        forward = PlayerCharacterEntity.transform.forward;
+                        right = PlayerCharacterEntity.transform.right;
+                    }
+                    forward.y = 0f;
+                    right.y = 0f;
+                    forward.Normalize();
+                    right.Normalize();
+                    moveDirection += forward * verticalInput;
+                    moveDirection += right * horizontalInput;
+                    // normalize input if it exceeds 1 in combined length:
+                    if (moveDirection.sqrMagnitude > 1)
+                        moveDirection.Normalize();
+                    break;
+                case DimensionType.Dimension2D:
+                    moveDirection = new Vector2(horizontalInput, verticalInput);
+                    break;
+            }
+            return moveDirection;
         }
 
 

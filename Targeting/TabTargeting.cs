@@ -37,7 +37,7 @@ public class TabTargeting : MonoBehaviour
     protected bool verticalTargetingInUse;
     protected bool horizontalTargetingInUse;
 
-    protected bool focusingTarget;
+    public bool focusingTarget;
 
 
 
