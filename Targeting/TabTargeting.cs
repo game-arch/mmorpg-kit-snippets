@@ -123,6 +123,10 @@ public class TabTargeting : MonoBehaviour
                     targetRecticle.transform.position = GetCenter(BasePlayerCharacterController.OwningCharacter.gameObject);
             }
         }
+        if (selectedTarget)
+        {
+
+        }
     }
 
     protected virtual bool TryGetButtonDown(string name)

@@ -50,7 +50,9 @@ namespace MultiplayerARPG
             if (Targeting.SelectedTarget == null && Targeting.PotentialTarget == null && Targeting.CastingTarget == null)
                 ClearTarget();
             if (CacheGameplayCameraControls != null)
+            {
                 CacheGameplayCameraControls.target = CameraTargetTransform;
+            }
 
             if (CacheMinimapCameraControls != null)
                 CacheMinimapCameraControls.target = CameraTargetTransform;
@@ -236,27 +238,33 @@ namespace MultiplayerARPG
             if (controllerMode == PlayerCharacterControllerMode.PointClick)
                 return;
 
-            // If mobile platforms, don't receive input raw to make it smooth
-            bool raw = !InputManager.useMobileInputOnNonMobile && !Application.isMobilePlatform;
-            Vector3 moveDirection = GetMoveDirection(InputManager.GetAxis("Horizontal", raw), InputManager.GetAxis("Vertical", raw));
-            moveDirection.Normalize();
-
-            // Move
-            if (moveDirection.sqrMagnitude > 0f)
+            if (CacheGameplayCameraTransform != null)
             {
-                HideNpcDialog();
-                ClearQueueUsingSkill();
-                destination = null;
-                isFollowingTarget = false;
-                if (!PlayerCharacterEntity.IsPlayingActionAnimation())
-                    PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(moveDirection));
+                // If mobile platforms, don't receive input raw to make it smooth
+                bool raw = !InputManager.useMobileInputOnNonMobile && !Application.isMobilePlatform;
+                Vector3 moveDirection = GetMoveDirection(InputManager.GetAxis("Horizontal", raw), InputManager.GetAxis("Vertical", raw));
+                moveDirection.Normalize();
+
+                // Move
+                if (moveDirection.sqrMagnitude > 0f)
+                {
+                    HideNpcDialog();
+                    ClearQueueUsingSkill();
+                    destination = null;
+                    isFollowingTarget = false;
+                    if (!PlayerCharacterEntity.IsPlayingActionAnimation())
+                        PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(moveDirection));
+                }
+                // Always forward
+                MovementState movementState = MovementState.Forward;
+                if (InputManager.GetButtonDown("Jump"))
+                    movementState |= MovementState.IsJump;
+                PlayerCharacterEntity.KeyMovement(moveDirection, movementState);
             }
-            // Always forward
-            MovementState movementState = MovementState.Forward;
-            if (InputManager.GetButtonDown("Jump"))
-                movementState |= MovementState.IsJump;
-            PlayerCharacterEntity.KeyMovement(moveDirection, movementState);
         }
+
+
+
         protected virtual void PickUpItem()
         {
             targetItemDrop = null;
