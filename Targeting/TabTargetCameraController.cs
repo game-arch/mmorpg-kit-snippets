@@ -44,6 +44,9 @@ public class TabTargetCameraController : MonoBehaviour
     private void Update()
     {
 
+        PlayerCharacterController controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
+        if (target != controller?.PlayerCharacterEntity?.gameObject)
+            return;
         PlayerPrefs.SetFloat(savePrefsPrefix + "_XRotation", cameraYaw);
         PlayerPrefs.SetFloat(savePrefsPrefix + "_YRotation", cameraPitch);
         PlayerPrefs.SetFloat(savePrefsPrefix + "_ZoomDistance", cameraDistance);
@@ -56,6 +59,8 @@ public class TabTargetCameraController : MonoBehaviour
         if (!camera)
             return;
         PlayerCharacterController controller = BasePlayerCharacterController.Singleton as PlayerCharacterController;
+        if (target != controller?.PlayerCharacterEntity?.gameObject)
+            return;
 
         // If mouse button down then allow user to look around
         if (Input.GetMouseButton(0) || Input.GetMouseButton(1))
