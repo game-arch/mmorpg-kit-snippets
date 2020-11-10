@@ -119,15 +119,8 @@ public class TabTargetCameraController : MonoBehaviour
             Vector3 focusPosition = FocusTarget.transform.position;
             Vector3 diff = (focusPosition - Player.transform.position);
             Vector3 angles = Quaternion.LookRotation(diff).eulerAngles;
-            if (angles.y != cameraYaw)
-            {
-
-                cameraYaw = angles.y;
-            }
-            if (angles.x + cameraYOffset != cameraPitch)
-            {
-                cameraPitch = angles.x + cameraYOffset;
-            }
+            cameraYaw = angles.y;
+            cameraPitch = angles.x + cameraYOffset;
 
             MoveCameraTo(camera.transform, FocusTarget.transform, (cameraYaw + yawOffset) % 360, cameraPitch + pitchOffset, diff.magnitude);
             camera.transform.LookAt(focusPosition + (Vector3.up * cameraYOffset));
