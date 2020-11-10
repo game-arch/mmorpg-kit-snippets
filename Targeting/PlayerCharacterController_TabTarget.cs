@@ -15,6 +15,7 @@ namespace MultiplayerARPG
 
         public bool isAutoAttacking;
 
+
         public float TargetDistance
         {
             get
@@ -239,51 +240,58 @@ namespace MultiplayerARPG
             if (controllerMode == PlayerCharacterControllerMode.PointClick)
                 return;
 
-            if (CacheGameplayCameraTransform != null)
-            {
-                // If mobile platforms, don't receive input raw to make it smooth
-                bool raw = !InputManager.useMobileInputOnNonMobile && !Application.isMobilePlatform;
-                Vector3 moveDirection = TabTargetGetMoveDirection(InputManager.GetAxis("Horizontal", raw), InputManager.GetAxis("Vertical", raw));
-                moveDirection.Normalize();
+            // If mobile platforms, don't receive input raw to make it smooth
+            bool raw = !InputManager.useMobileInputOnNonMobile && !Application.isMobilePlatform;
+            Vector3 moveDirection = TabTargetGetMoveDirection(InputManager.GetAxis("Horizontal", raw), InputManager.GetAxis("Vertical", raw));
+            moveDirection.Normalize();
 
-                // Move
-                if (moveDirection.sqrMagnitude > 0f)
-                {
-                    HideNpcDialog();
-                    ClearQueueUsingSkill();
-                    destination = null;
-                    isFollowingTarget = false;
-                    if (!PlayerCharacterEntity.IsPlayingActionAnimation())
-                        PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(moveDirection));
-                }
-                // Always forward
-                MovementState movementState = MovementState.Forward;
-                if (InputManager.GetButtonDown("Jump"))
-                    movementState |= MovementState.IsJump;
-                PlayerCharacterEntity.KeyMovement(moveDirection, movementState);
+            // Move
+            if (moveDirection.sqrMagnitude > 0f)
+            {
+                HideNpcDialog();
+                ClearQueueUsingSkill();
+                destination = null;
+                isFollowingTarget = false;
+                if (!PlayerCharacterEntity.IsPlayingActionAnimation())
+                    PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(moveDirection));
             }
+            // Always forward
+            MovementState movementState = MovementState.Forward;
+            if (InputManager.GetButtonDown("Jump"))
+                movementState |= MovementState.IsJump;
+            PlayerCharacterEntity.KeyMovement(moveDirection, movementState);
+            
         }
         public Vector3 TabTargetGetMoveDirection(float horizontalInput, float verticalInput)
         {
             Vector3 moveDirection = Vector3.zero;
-            switch (CurrentGameInstance.DimensionType)
+            if (CacheGameplayCamera)
             {
-                case DimensionType.Dimension3D:
-                    Vector3 forward = CacheGameplayCameraTransform.forward;
-                    Vector3 right = CacheGameplayCameraTransform.right;
-                    forward.y = 0f;
-                    right.y = 0f;
-                    forward.Normalize();
-                    right.Normalize();
-                    moveDirection += forward * verticalInput;
-                    moveDirection += right * horizontalInput;
-                    // normalize input if it exceeds 1 in combined length:
-                    if (moveDirection.sqrMagnitude > 1)
-                        moveDirection.Normalize();
-                    break;
-                case DimensionType.Dimension2D:
-                    moveDirection = new Vector2(horizontalInput, verticalInput);
-                    break;
+                switch (CurrentGameInstance.DimensionType)
+                {
+                    case DimensionType.Dimension3D:
+                        Vector3 forward = CacheGameplayCamera.transform.forward;
+                        Vector3 right = CacheGameplayCamera.transform.right;
+                        if (Targeting.SelectedTarget && Targeting.focusingTarget)
+                        {
+                            PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(Targeting.SelectedTarget.transform.position - PlayerCharacterEntity.transform.position));
+                            forward = PlayerCharacterEntity.transform.forward;
+                            right = PlayerCharacterEntity.transform.right;
+                        }
+                        forward.y = 0f;
+                        right.y = 0f;
+                        forward.Normalize();
+                        right.Normalize();
+                        moveDirection += forward * verticalInput;
+                        moveDirection += right * horizontalInput;
+                        // normalize input if it exceeds 1 in combined length:
+                        if (moveDirection.sqrMagnitude > 1)
+                            moveDirection.Normalize();
+                        break;
+                    case DimensionType.Dimension2D:
+                        moveDirection = new Vector2(horizontalInput, verticalInput);
+                        break;
+                }
             }
             return moveDirection;
         }
@@ -344,7 +352,7 @@ namespace MultiplayerARPG
                 BuildingMaterial tempBuildingMaterial;
                 // If mouse up while cursor point to target (character, item, npc and so on)
                 bool mouseUpOnTarget = getMouseUp && !isMouseDragOrHoldOrOverUI;
-                int tempCount = FindClickObjects(out tempVector3);
+                int tempCount = TabTargetFindClickObjects(out tempVector3);
                 for (int tempCounter = 0; tempCounter < tempCount; ++tempCounter)
                 {
                     tempTransform = physicFunctions.GetRaycastTransform(tempCounter);
@@ -623,6 +631,20 @@ namespace MultiplayerARPG
                     Targeting.UnTarget(Targeting.SelectedTarget);
                 });
             }
+        }
+        public int TabTargetFindClickObjects(out Vector3 worldPosition2D)
+        {
+            return physicFunctions.RaycastPickObjects(CacheGameplayCamera, InputManager.MousePosition(), CurrentGameInstance.GetTargetLayerMask(), 100f, out worldPosition2D);
+        }
+
+        public void TabTargetFindAndSetBuildingAreaByAxes(Vector2 aimAxes)
+        {
+            LoopSetBuildingArea(physicFunctions.RaycastDown(CacheTransform.position + (GameplayUtils.GetDirectionByAxes(CacheGameplayCamera.transform, aimAxes.x, aimAxes.y) * ConstructingBuildingEntity.buildDistance), CurrentGameInstance.GetBuildLayerMask()));
+        }
+
+        public void TabTargetFindAndSetBuildingAreaByMousePosition()
+        {
+            LoopSetBuildingArea(physicFunctions.RaycastPickObjects(CacheGameplayCamera, InputManager.MousePosition(), CurrentGameInstance.GetBuildLayerMask(), 100f, out _));
         }
     }
 }

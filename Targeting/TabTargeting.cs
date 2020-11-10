@@ -144,7 +144,6 @@ public class TabTargeting : MonoBehaviour
             {
                 aimAssistTarget.transform.position = GetCenter(selectedTarget);
                 aimAssistTarget.SetActive(true);
-                Controller.CacheGameplayCamera.transform.LookAt(aimAssistTarget.transform);
             }
             else
             {
