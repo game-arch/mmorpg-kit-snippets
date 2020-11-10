@@ -26,7 +26,6 @@ public class TabTargetCameraController : MonoBehaviour
     protected float yawOffset = 0f;
     protected float pitchOffset = 0f;
     protected float maxOffset = 20f;
-    protected GameObject dummy;
 
 
     protected GameObject FocusTarget
@@ -61,7 +60,6 @@ public class TabTargetCameraController : MonoBehaviour
     }
     private void Start()
     {
-        dummy = new GameObject();
         cameraYaw = PlayerPrefs.GetFloat(savePrefsPrefix + "_XRotation", cameraYaw);
         cameraPitch = PlayerPrefs.GetFloat(savePrefsPrefix + "_YRotation", cameraPitch);
         cameraDistance = PlayerPrefs.GetFloat(savePrefsPrefix + "_ZoomDistance", cameraDistance);
@@ -87,55 +85,66 @@ public class TabTargetCameraController : MonoBehaviour
 
         // If mouse button down then allow user to look around
         if (Input.GetMouseButton(0) || Input.GetMouseButton(1))
-        {
-
-            if (IsFocusing())
-            {
-                float modifiedPitch = pitchOffset - Input.GetAxis("Mouse Y") * cameraPitchSpeed;
-                float modifiedYaw = yawOffset + Input.GetAxis("Mouse X") * cameraYawSpeed;
-                pitchOffset = Mathf.Clamp(modifiedPitch, 0, maxOffset);
-                yawOffset = Mathf.Clamp(modifiedYaw, -maxOffset, maxOffset);
-            }
-            else
-            {
-                yawOffset = 0;
-                pitchOffset = 0;
-                cameraPitch -= Input.GetAxis("Mouse Y") * cameraPitchSpeed;
-                cameraPitch = Mathf.Clamp(cameraPitch, cameraPitchMin, cameraPitchMax);
-                cameraYaw += Input.GetAxis("Mouse X") * cameraYawSpeed;
-                cameraYaw = cameraYaw % 360.0f;
-            }
-        }
+            UpdateInput();
         // Zoom
         if (Input.GetAxis("Mouse ScrollWheel") != 0)
-        {
-            cameraDistance -= Input.GetAxis("Mouse ScrollWheel") * cameraDistanceSpeed;
-            cameraDistance = Mathf.Clamp(cameraDistance, cameraDistanceMin, cameraDistanceMax);
-            lerpDistance = false;
-        }
+            UpdateZoom();
 
         if (IsFocusing())
-        {
-            Vector3 focusPosition = FocusTarget.transform.position;
-            Vector3 diff = (focusPosition - Player.transform.position);
-            Vector3 angles = Quaternion.LookRotation(diff).eulerAngles;
-            cameraYaw = angles.y;
-            cameraPitch = angles.x + cameraYOffset;
+            FollowSelectedTarget();
+        else
+            FollowPlayer();
+    }
 
-            MoveCameraTo(camera.transform, FocusTarget.transform, (cameraYaw + yawOffset) % 360, cameraPitch + pitchOffset, diff.magnitude);
-            camera.transform.LookAt(focusPosition + (Vector3.up * cameraYOffset));
-            return;
-        }
+    protected virtual void UpdateZoom()
+    {
+        cameraDistance -= Input.GetAxis("Mouse ScrollWheel") * cameraDistanceSpeed;
+        cameraDistance = Mathf.Clamp(cameraDistance, cameraDistanceMin, cameraDistanceMax);
+        lerpDistance = false;
+    }
+
+    protected virtual void FollowPlayer()
+    {
         MoveCameraTo(camera.transform, Player.transform, cameraYaw, cameraPitch);
         camera.transform.LookAt(Player.transform.position + (Vector3.up * cameraYOffset));
     }
 
-    bool IsFocusing()
+    protected virtual void FollowSelectedTarget()
+    {
+        Vector3 focusPosition = FocusTarget.transform.position;
+        Vector3 diff = (focusPosition - Player.transform.position);
+        Vector3 angles = Quaternion.LookRotation(diff).eulerAngles;
+        cameraYaw = angles.y;
+        cameraPitch = angles.x + cameraYOffset;
+
+        MoveCameraTo(camera.transform, FocusTarget.transform, (cameraYaw + yawOffset) % 360, cameraPitch + pitchOffset, diff.magnitude);
+        camera.transform.LookAt(focusPosition + (Vector3.up * cameraYOffset));
+    }
+
+    protected virtual void UpdateInput()
+    {
+        if (IsFocusing())
+        {
+            float modifiedPitch = pitchOffset - Input.GetAxis("Mouse Y") * cameraPitchSpeed;
+            float modifiedYaw = yawOffset + Input.GetAxis("Mouse X") * cameraYawSpeed;
+            pitchOffset = Mathf.Clamp(modifiedPitch, 0, maxOffset);
+            yawOffset = Mathf.Clamp(modifiedYaw, -maxOffset, maxOffset);
+            return;
+        }
+        yawOffset = 0;
+        pitchOffset = 0;
+        cameraPitch -= Input.GetAxis("Mouse Y") * cameraPitchSpeed;
+        cameraPitch = Mathf.Clamp(cameraPitch, cameraPitchMin, cameraPitchMax);
+        cameraYaw += Input.GetAxis("Mouse X") * cameraYawSpeed;
+        cameraYaw = cameraYaw % 360.0f;
+    }
+
+    protected virtual bool IsFocusing()
     {
         return FocusTarget != null && Controller.Targeting.focusingTarget;
     }
 
-    void MoveCameraTo(Transform camera, Transform target, float x, float y, float distanceOffset = 0f)
+    protected virtual void MoveCameraTo(Transform camera, Transform target, float x, float y, float distanceOffset = 0f)
     {
         Vector3 newCameraPosition = target.position + (Quaternion.Euler(y, x, 0) * Vector3.back * (distanceOffset + cameraDistance));
 
@@ -146,13 +155,10 @@ public class TabTargetCameraController : MonoBehaviour
             newCameraPosition = hitInfo.point;
             lerpDistance = true;
         }
-        else
+        else if (lerpDistance)
         {
-            if (lerpDistance)
-            {
-                float newCameraDistance = Mathf.Lerp(Vector3.Distance(target.position, camera.position), distanceOffset + cameraDistance, 5.0f * Time.deltaTime);
-                newCameraPosition = target.position + (Quaternion.Euler(y, x, 0) * Vector3.back * newCameraDistance);
-            }
+            float newCameraDistance = Mathf.Lerp(Vector3.Distance(target.position, camera.position), distanceOffset + cameraDistance, 5.0f * Time.deltaTime);
+            newCameraPosition = target.position + (Quaternion.Euler(y, x, 0) * Vector3.back * newCameraDistance);
         }
 
         camera.position = newCameraPosition;
