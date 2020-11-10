@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 114548782499701980}
   - component: {fileID: 114185086765178122}
   - component: {fileID: -4127925997719560857}
+  - component: {fileID: 3842730621364388693}
   m_Layer: 0
   m_Name: GameplayCamera
   m_TagString: MainCamera
@@ -204,6 +205,28 @@ MonoBehaviour:
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
   m_Version: 2
+--- !u!114 &3842730621364388693
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1278824955568960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1bdc14ffef5a16a478e3a625be6688c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cameraPitchSpeed: 2
+  cameraPitchMin: -10
+  cameraPitchMax: 80
+  cameraYawSpeed: 5
+  cameraDistanceSpeed: 5
+  cameraDistanceMin: 2
+  cameraDistanceMax: 12
+  cameraYOffset: 2
+  focusFollowAngle: 150
+  savePrefsPrefix: GAMEPLAY
 --- !u!1001 &340499981004392616
 PrefabInstance:
   m_ObjectHideFlags: 0
