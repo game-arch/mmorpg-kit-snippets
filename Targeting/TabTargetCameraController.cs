@@ -70,8 +70,8 @@ public class TabTargetCameraController : MonoBehaviour
 
         if (!Player)
             return;
-        PlayerPrefs.SetFloat(savePrefsPrefix + "_XRotation", cameraYaw);
-        PlayerPrefs.SetFloat(savePrefsPrefix + "_YRotation", cameraPitch);
+        PlayerPrefs.SetFloat(savePrefsPrefix + "_XRotation", cameraYaw + yawOffset);
+        PlayerPrefs.SetFloat(savePrefsPrefix + "_YRotation", cameraPitch + pitchOffset);
         PlayerPrefs.SetFloat(savePrefsPrefix + "_ZoomDistance", cameraDistance);
         PlayerPrefs.Save();
     }
@@ -85,7 +85,7 @@ public class TabTargetCameraController : MonoBehaviour
             return;
 
         // If mouse button down then allow user to look around
-        if (Input.GetMouseButton(0) || Input.GetMouseButton(1))
+        if (Input.GetMouseButton(1))
             UpdateInput();
         // Zoom
         if (Input.GetAxis("Mouse ScrollWheel") != 0)
@@ -123,8 +123,9 @@ public class TabTargetCameraController : MonoBehaviour
         Vector3 angles = Quaternion.LookRotation(diff).eulerAngles;
         float horizontal = angles.y;
         float vertical = angles.x;
-
-        cameraYaw = Mathf.LerpAngle(cameraYaw, horizontal, 5f * Time.deltaTime);
+        float angle = Vector3.Angle(diff, camera.transform.right);
+        if (angle < 80 || angle > 100 || Input.GetMouseButton(1))
+            cameraYaw = Mathf.LerpAngle(cameraYaw, horizontal, 2f * Time.deltaTime);
 
         cameraYaw = cameraYaw % 360;
 
@@ -164,8 +165,6 @@ public class TabTargetCameraController : MonoBehaviour
             }
             return;
         }
-        yawOffset = 0;
-        pitchOffset = -1;
         cameraPitch -= Input.GetAxis("Mouse Y") * cameraPitchSpeed;
         cameraPitch = Mathf.Clamp(cameraPitch, cameraPitchMin, cameraPitchMax);
         cameraYaw += Input.GetAxis("Mouse X") * cameraYawSpeed;
