@@ -106,14 +106,20 @@ public class TabTargetCameraController : MonoBehaviour
 
     protected virtual void FollowPlayer()
     {
+        if (pitchOffset > -1)
+            cameraPitch = cameraPitch + pitchOffset;
         MoveCameraTo(camera.transform, Player.transform, cameraYaw, cameraPitch);
         camera.transform.LookAt(Player.transform.position + (Vector3.up * cameraYOffset));
+        yawOffset = 0;
+        pitchOffset = -1;
     }
 
     protected virtual void FollowSelectedTarget()
     {
         Vector3 focusPosition = FocusTarget.transform.position;
-        Vector3 diff = (focusPosition - Player.transform.position);
+        Vector3 diffOfCamera = Player.transform.position - camera.transform.position;
+        Vector3 diffOfCameraFromNewTarget = focusPosition - camera.transform.position;
+        Vector3 diff = focusPosition - Player.transform.position;
         Vector3 angles = Quaternion.LookRotation(diff).eulerAngles;
         float horizontal = angles.y;
         float vertical = angles.x;
@@ -121,7 +127,11 @@ public class TabTargetCameraController : MonoBehaviour
         cameraYaw = Mathf.LerpAngle(cameraYaw, horizontal, 5f * Time.deltaTime);
 
         cameraYaw = cameraYaw % 360;
-        cameraPitch = Mathf.Lerp(cameraPitch, vertical + (cameraYOffset) + 10f, 5f * Time.deltaTime);
+
+        if (pitchOffset == -1)
+            pitchOffset = (cameraPitch * diffOfCamera.magnitude) / diffOfCameraFromNewTarget.magnitude;
+        pitchOffset = Mathf.Clamp(pitchOffset, 0, maxOffset);
+        cameraPitch = vertical;
         if (lerpOffset)
         {
             yawOffset = Mathf.Lerp(yawOffset, 0, Time.deltaTime);
@@ -143,7 +153,7 @@ public class TabTargetCameraController : MonoBehaviour
             return;
         }
         yawOffset = 0;
-        pitchOffset = 0;
+        pitchOffset = -1;
         cameraPitch -= Input.GetAxis("Mouse Y") * cameraPitchSpeed;
         cameraPitch = Mathf.Clamp(cameraPitch, cameraPitchMin, cameraPitchMax);
         cameraYaw += Input.GetAxis("Mouse X") * cameraYawSpeed;
