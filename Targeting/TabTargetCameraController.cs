@@ -13,10 +13,10 @@ public class TabTargetCameraController : MonoBehaviour
     bool lerpDistance = false;
     public static bool lerpOffset = false;
 
-    public float cameraPitchSpeed = 2.0f;
+    protected float cameraPitchSpeed = 2.0f;
+    protected float cameraYawSpeed = 2.0f;
     public float cameraPitchMin = -10.0f;
     public float cameraPitchMax = 80.0f;
-    public float cameraYawSpeed = 5.0f;
     public float cameraDistanceSpeed = 5.0f;
     public float cameraDistanceMin = 2.0f;
     public float cameraDistanceMax = 12.0f;
@@ -26,7 +26,7 @@ public class TabTargetCameraController : MonoBehaviour
 
     protected float yawOffset = 0f;
     protected float pitchOffset = 0f;
-    protected float maxOffset = 20f;
+    protected float maxOffset = 40f;
 
 
     protected GameObject FocusTarget
@@ -134,7 +134,7 @@ public class TabTargetCameraController : MonoBehaviour
         cameraPitch = vertical;
         if (lerpOffset)
         {
-            yawOffset = Mathf.Lerp(yawOffset, 0, Time.deltaTime);
+            yawOffset = Mathf.Lerp(yawOffset, 0, Time.deltaTime / 2);
             lerpOffset = false;
         }
         MoveCameraTo(camera.transform, FocusTarget.transform, (cameraYaw + yawOffset), cameraPitch + pitchOffset, diff.magnitude);
@@ -145,11 +145,23 @@ public class TabTargetCameraController : MonoBehaviour
     {
         if (IsFocusing())
         {
-            float modifiedPitch = pitchOffset - Input.GetAxis("Mouse Y") * cameraPitchSpeed;
-            float modifiedYaw = yawOffset + Input.GetAxis("Mouse X") * cameraYawSpeed;
-            pitchOffset = Mathf.Clamp(modifiedPitch, 0, maxOffset);
-            yawOffset = Mathf.Clamp(modifiedYaw, -maxOffset, maxOffset);
+            pitchOffset = pitchOffset - Input.GetAxis("Mouse Y") * cameraPitchSpeed;
+            yawOffset = yawOffset + Input.GetAxis("Mouse X") * cameraYawSpeed;
             lerpOffset = false;
+            float radius = maxOffset / 2;
+            Vector3 newLocation = new Vector3(yawOffset, pitchOffset);
+            Vector3 centerPosition = new Vector3(0, 0); //center of *black circle*
+            float distance = Vector3.Distance(newLocation, centerPosition); //distance from ~green object~ to *black circle*
+
+            if (distance > radius)
+            {
+                Vector3 fromOriginToObject = newLocation - centerPosition;
+                fromOriginToObject *= radius / distance;
+                newLocation = centerPosition + fromOriginToObject;
+                yawOffset = newLocation.x;
+                pitchOffset = newLocation.y;
+
+            }
             return;
         }
         yawOffset = 0;
