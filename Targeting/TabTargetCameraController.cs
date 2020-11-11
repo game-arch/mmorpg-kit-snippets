@@ -11,6 +11,7 @@ public class TabTargetCameraController : MonoBehaviour
     float cameraYaw = 0;
     float cameraDistance = 5.0f;
     bool lerpDistance = false;
+    public static bool lerpOffset = false;
 
     public float cameraPitchSpeed = 2.0f;
     public float cameraPitchMin = -10.0f;
@@ -114,10 +115,19 @@ public class TabTargetCameraController : MonoBehaviour
         Vector3 focusPosition = FocusTarget.transform.position;
         Vector3 diff = (focusPosition - Player.transform.position);
         Vector3 angles = Quaternion.LookRotation(diff).eulerAngles;
-        cameraYaw = angles.y;
-        cameraPitch = angles.x + cameraYOffset;
+        float horizontal = angles.y;
+        float vertical = angles.x;
 
-        MoveCameraTo(camera.transform, FocusTarget.transform, (cameraYaw + yawOffset) % 360, cameraPitch + pitchOffset, diff.magnitude);
+        cameraYaw = Mathf.LerpAngle(cameraYaw, horizontal, 5f * Time.deltaTime);
+
+        cameraYaw = cameraYaw % 360;
+        cameraPitch = Mathf.Lerp(cameraPitch, vertical + (cameraYOffset) + 10f, 5f * Time.deltaTime);
+        if (lerpOffset)
+        {
+            yawOffset = Mathf.Lerp(yawOffset, 0, Time.deltaTime);
+            lerpOffset = false;
+        }
+        MoveCameraTo(camera.transform, FocusTarget.transform, (cameraYaw + yawOffset), cameraPitch + pitchOffset, diff.magnitude);
         camera.transform.LookAt(focusPosition + (Vector3.up * cameraYOffset));
     }
 
@@ -129,6 +139,7 @@ public class TabTargetCameraController : MonoBehaviour
             float modifiedYaw = yawOffset + Input.GetAxis("Mouse X") * cameraYawSpeed;
             pitchOffset = Mathf.Clamp(modifiedPitch, 0, maxOffset);
             yawOffset = Mathf.Clamp(modifiedYaw, -maxOffset, maxOffset);
+            lerpOffset = false;
             return;
         }
         yawOffset = 0;

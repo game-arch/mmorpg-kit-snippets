@@ -181,6 +181,7 @@ namespace MultiplayerARPG
             TargetEntity = SelectedEntity;
             if (hasChanged)
             {
+                isAutoAttacking = false;
                 CacheUISceneGameplay.SetTargetEntity(null);
                 CacheUISceneGameplay.SetTargetEntity(CacheActionTarget);
             }
@@ -248,6 +249,7 @@ namespace MultiplayerARPG
             // Move
             if (moveDirection.sqrMagnitude > 0f)
             {
+                TabTargetCameraController.lerpOffset = true;
                 HideNpcDialog();
                 ClearQueueUsingSkill();
                 destination = null;
@@ -371,6 +373,7 @@ namespace MultiplayerARPG
                     }
                     else if (mouseUpOnTarget)
                     {
+                        isAutoAttacking = false;
                         if (tempTransform.gameObject.GetComponent<BaseGameEntity>() == CacheSelectedTarget)
                         {
                             Activate();
@@ -472,6 +475,7 @@ namespace MultiplayerARPG
 
         public virtual void HandleTargetChange(Transform tempTransform)
         {
+            isAutoAttacking = false;
             if (tempTransform)
             {
                 targetPlayer = tempTransform.GetComponent<BasePlayerCharacterEntity>();
@@ -521,8 +525,43 @@ namespace MultiplayerARPG
             return true;
         }
 
+        protected virtual void Attack(IDamageableEntity entity, float distance, int layerMask)
+        {
+            Transform damageTransform = PlayerCharacterEntity.GetWeaponDamageInfo(ref isLeftHandAttacking).GetDamageTransform(PlayerCharacterEntity, isLeftHandAttacking);
+            Vector3 measuringPosition = damageTransform.position;
+            Vector3 targetPosition = entity.OpponentAimTransform.position;
+            if (OverlappedEntity(entity.Entity, measuringPosition, targetPosition, distance))
+            {
+                // Turn character to attacking target
+                TurnCharacterToEntity(entity.Entity);
+                // Do action
+                RequestAttack();
+                // This function may be used by extending classes
+                OnAttackOnEntity();
+            }
+        }
         public void TabTargetUpdateFollowTarget()
         {
+            // use attack
+            targetActionType = TargetActionType.Attack;
+            if (isAutoAttacking && CanAttack(out targetDamageable))
+            {
+                if (targetDamageable.IsHideOrDead())
+                {
+                    isAutoAttacking = false;
+                    ClearQueueUsingSkill();
+                    PlayerCharacterEntity.StopMove();
+                    ClearTarget();
+                    Targeting.UnTarget(Targeting.SelectedTarget);
+                    return;
+                }
+                float attackDistance = 0f;
+                float attackFov = 0f;
+                GetAttackDistanceAndFov(isLeftHandAttacking, out attackDistance, out attackFov);
+                Attack(targetDamageable, attackDistance, CurrentGameInstance.characterLayer.Mask);
+                return;
+            }
+
             if (!isFollowingTarget)
                 return;
             // Use the set target action type for the following actions
@@ -555,24 +594,6 @@ namespace MultiplayerARPG
                     PlayerCharacterEntity.CallServerPickupItem(targetItemDrop.ObjectId);
                     ClearTarget();
                 });
-                return;
-            }
-            // use attack
-            targetActionType = TargetActionType.Attack;
-            if (isAutoAttacking && CanAttack(out targetDamageable))
-            {
-                if (targetDamageable.IsHideOrDead())
-                {
-                    ClearQueueUsingSkill();
-                    PlayerCharacterEntity.StopMove();
-                    ClearTarget();
-                    Targeting.UnTarget(Targeting.SelectedTarget);
-                    return;
-                }
-                float attackDistance = 0f;
-                float attackFov = 0f;
-                GetAttackDistanceAndFov(isLeftHandAttacking, out attackDistance, out attackFov);
-                AttackOrMoveToEntity(targetDamageable, attackDistance, CurrentGameInstance.characterLayer.Mask);
                 return;
             }
             // use skill
