@@ -59,14 +59,21 @@ namespace MultiplayerARPG
         }
         public void UnSetHotKeys()
         {
-            Hotkeys.Clear();
+            List<CharacterHotkey> set = new List<CharacterHotkey>();
+            Hotkeys = set;
         }
         public void SetHotKeys(BuildHotKey[] hotKeys)
         {
+            List<CharacterHotkey> set = new List<CharacterHotkey>();
             foreach (BuildHotKey hotKey in hotKeys)
             {
-                Debug.Log("Load " + hotKey.type + " " + hotKey.relateId + " in " + hotKey.hotkeyId);
+                CharacterHotkey characterHotkey = new CharacterHotkey();
+                characterHotkey.type = hotKey.type;
+                characterHotkey.relateId = hotKey.relateId;
+                characterHotkey.hotkeyId = hotKey.hotkeyId;
+                set.Add(characterHotkey);
             }
+            Hotkeys = set;
         }
 
         public string GetEquipPosition(string equipPositionId, byte equipSlotIndex)

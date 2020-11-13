@@ -84,9 +84,21 @@ namespace CharacterBuilds
             }
         }
 
+        public void OnUpdateBuild(int index)
+        {
+            if (Builds.builds.Length > index)
+            {
+                Build build = CharacterBuildController.CreateBuild();
+                Build existing = Builds.builds[index];
+                existing.equipment = build.equipment;
+                existing.hotKeys = build.hotKeys;
+                CharacterBuildController.SaveBuilds();
+            }
+        }
+
         public void UpdateData()
         {
-            if (Builds == null) return; 
+            if (Builds == null) return;
             buildsContainer.RemoveObjectsByComponentInChildren<UICharacterBuild>(true);
             for (int i = 0; i < Builds.builds.Length; i++)
             {
@@ -94,6 +106,7 @@ namespace CharacterBuilds
                 UICharacterBuild uiBuild = Instantiate(buildPrefab, buildsContainer.transform);
                 uiBuild.index = i;
                 uiBuild.OnSet.AddListener(OnSelectBuild);
+                uiBuild.OnUpdate.AddListener(OnUpdateBuild);
                 uiBuild.OnDelete.AddListener(OnDeleteBuild);
                 uiBuild.UpdateData();
 
