@@ -47,6 +47,8 @@ public class TabTargetCameraController : MonoBehaviour
     {
         get
         {
+            if (Controller?.PlayerCharacterEntity == null)
+                return null;
             return Controller?.PlayerCharacterEntity?.gameObject;
         }
     }
@@ -84,11 +86,13 @@ public class TabTargetCameraController : MonoBehaviour
         if (!Player)
             return;
 
+            bool isFocusInputField = GenericUtils.IsFocusInputField();
+            bool isPointerOverUIObject = Controller.CacheUISceneGameplay.IsPointerOverUIObject();
         // If mouse button down then allow user to look around
-        if (Input.GetMouseButton(1))
+        if (!isPointerOverUIObject && Input.GetMouseButton(1))
             UpdateInput();
         // Zoom
-        if (Input.GetAxis("Mouse ScrollWheel") != 0)
+        if (!isPointerOverUIObject && Input.GetAxis("Mouse ScrollWheel") != 0)
             UpdateZoom();
 
         if (IsFocusing())

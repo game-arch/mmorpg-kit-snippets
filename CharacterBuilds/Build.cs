@@ -1,21 +1,24 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace CharacterBuilds
 {
+    [Serializable]
     public class Build
     {
-        public int buildIndex { get; set; }
-        public int playerEntityId { get; set; }
-        public Dictionary<int, BuildHotBar> hotBars { get; set; }
-        public Dictionary<string, BuildGearItem> gear { get; set; }
 
-        public Build()
+        public string label;
+        public int playerEntityId;
+        public BuildEquipItem[] equipment;
+        public BuildHotKey[] hotKeys;
+
+        public static Build Create()
         {
-            hotBars = new Dictionary<int, BuildHotBar>();
-            hotBars.Add(1, new BuildHotBar(1));
-            gear = new Dictionary<string, BuildGearItem>();
+            Build build = new Build();
+            return build;
         }
+
     }
 }
