@@ -189,7 +189,7 @@ namespace MultiplayerARPG
 
         public virtual void TabTargetUpdateInput()
         {
-            bool isFocusInputField = GenericUtils.IsFocusInputField() || UIElementUtils.IsUIElementActive();
+            bool isFocusInputField = GenericUtils.IsFocusInputField();
             bool isPointerOverUIObject = CacheUISceneGameplay.IsPointerOverUIObject();
             if (CacheGameplayCameraControls != null)
             {
@@ -660,9 +660,8 @@ namespace MultiplayerARPG
 
         public void TabTargetFindAndSetBuildingAreaByAxes(Vector2 aimAxes)
         {
-            LoopSetBuildingArea(physicFunctions.RaycastDown(CacheTransform.position + (GameplayUtils.GetDirectionByAxes(CacheGameplayCamera.transform, aimAxes.x, aimAxes.y) * ConstructingBuildingEntity.buildDistance), CurrentGameInstance.GetBuildLayerMask()));
+            LoopSetBuildingArea(physicFunctions.RaycastDown(CacheTransform.position + (GameplayUtils.GetDirectionByAxes(CacheGameplayCamera.transform, aimAxes.x, aimAxes.y) * ConstructingBuildingEntity.BuildDistance), CurrentGameInstance.GetBuildLayerMask()));
         }
-
         public void TabTargetFindAndSetBuildingAreaByMousePosition()
         {
             LoopSetBuildingArea(physicFunctions.RaycastPickObjects(CacheGameplayCamera, InputManager.MousePosition(), CurrentGameInstance.GetBuildLayerMask(), 100f, out _));

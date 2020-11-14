@@ -17,7 +17,7 @@ namespace MultiplayerARPG
         void DevExt_Awake()
         {
 
-            onDead = () => CharacterDied.Invoke(this);
+            onDead.AddListener(() => CharacterDied.Invoke(this));
         }
 
         [DevExtMethods("OnDestroy")]

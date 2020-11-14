@@ -30,7 +30,7 @@ namespace MultiplayerARPG
                 if (slot.Contains("_HAND"))
                     CallServerEquipWeapon(nonEquipIndex, (byte)equipSet, slot.Contains("LEFT_"));
                 else
-                    RequestEquipItem(nonEquipIndex);
+                    CallServerEquipItem(nonEquipIndex);
             }
         }
 
