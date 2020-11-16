@@ -419,6 +419,8 @@ namespace MultiplayerARPG
 
             // Prepare movement speed
             tempEntityMoveSpeed = applyingJumpForce ? 0f : CacheEntity.GetMoveSpeed();
+            if (isUnderWater)
+                isFlying = false;
             tempCurrentMoveSpeed = tempEntityMoveSpeed * (isFlying ? flySpeed : isUnderWater ? swimSpeed : 1f);
             // Calculate vertical velocity by gravity
             if (!isGrounded && !isFlying)
