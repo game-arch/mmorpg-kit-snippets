@@ -281,21 +281,19 @@ namespace MultiplayerARPG
                             forward = PlayerCharacterEntity.transform.forward;
                             right = PlayerCharacterEntity.transform.right;
                         }
-                        if (!movementState.HasFlag(MovementState.IsUnderWater))
+
+                        SwimRigidBodyEntityMovement rigid;
+                        PlayerCharacterEntity.GetGameObject().TryGetComponent<SwimRigidBodyEntityMovement>(out rigid);
+                        if (!(bool)rigid?.IsUnderWater && !(bool)rigid?.IsFlying)
                         {
                             forward.y = 0f;
                             right.y = 0f;
-                        }
-                        else
-                        {
-                            SwimRigidBodyEntityMovement swim;
-                            PlayerCharacterEntity.GetGameObject().TryGetComponent<SwimRigidBodyEntityMovement>(out swim);
                         }
                         forward.Normalize();
                         right.Normalize();
                         moveDirection += forward * verticalInput;
                         moveDirection += right * horizontalInput;
-                        if (movementState.HasFlag(MovementState.IsUnderWater))
+                        if ((bool)rigid?.IsUnderWater || (bool)rigid?.IsFlying)
                         {
                             if (InputManager.GetButton("Jump"))
                                 moveDirection += Vector3.up;

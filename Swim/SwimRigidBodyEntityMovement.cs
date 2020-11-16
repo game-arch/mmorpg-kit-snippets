@@ -49,6 +49,26 @@ namespace MultiplayerARPG
 
         public Collider waterSurfaceCollider;
 
+        private bool isFlying;
+        public bool canFly;
+        public float flySpeed = 1.5f;
+        public float swimSpeed = 1f;
+
+        public bool IsFlying
+        {
+            get
+            {
+                return isFlying;
+            }
+        }
+
+        public bool IsUnderWater
+        {
+            get
+            {
+                return isUnderWater;
+            }
+        }
         public override float StoppingDistance
         {
             get { return stoppingDistance; }
@@ -203,6 +223,12 @@ namespace MultiplayerARPG
             tempMovementState = movementState;
             if (tempInputDirection.sqrMagnitude > 0)
                 navPaths = null;
+            if (canFly && !CacheOpenCharacterController.isGrounded && !isUnderWater && tempMovementState.HasFlag(MovementState.IsJump))
+            {
+                isFlying = true;
+                isJumping = false;
+                applyingJumpForce = false;
+            }
             if (!isJumping && !applyingJumpForce)
                 isJumping = (CacheOpenCharacterController.isGrounded || isUnderWater) && tempMovementState.HasFlag(MovementState.IsJump);
         }
@@ -250,6 +276,12 @@ namespace MultiplayerARPG
                     tempMovementState = movementState;
                     if (tempInputDirection.sqrMagnitude > 0)
                         navPaths = null;
+                    if (canFly && !CacheOpenCharacterController.isGrounded && !isUnderWater && tempMovementState.HasFlag(MovementState.IsJump))
+                    {
+                        isFlying = true;
+                        isJumping = false;
+                        applyingJumpForce = false;
+                    }
                     if (!isJumping && !applyingJumpForce)
                         isJumping = (isUnderWater || CacheOpenCharacterController.isGrounded) && tempMovementState.HasFlag(MovementState.IsJump);
                     break;
@@ -345,6 +377,8 @@ namespace MultiplayerARPG
                 airborneElapsed += deltaTime;
 
             bool isGrounded = CacheOpenCharacterController.isGrounded || airborneElapsed < airborneDelay;
+            if (isGrounded || !canFly)
+                isFlying = false;
 
             if (HasNavPaths)
             {
@@ -385,10 +419,9 @@ namespace MultiplayerARPG
 
             // Prepare movement speed
             tempEntityMoveSpeed = applyingJumpForce ? 0f : CacheEntity.GetMoveSpeed();
-            tempCurrentMoveSpeed = tempEntityMoveSpeed;
-
+            tempCurrentMoveSpeed = tempEntityMoveSpeed * (isFlying ? flySpeed : isUnderWater ? swimSpeed : 1f);
             // Calculate vertical velocity by gravity
-            if (!isGrounded)
+            if (!isGrounded && !isFlying)
             {
                 if (!isUnderWater || submergence <= underWaterThreshold)
                 {
@@ -398,20 +431,16 @@ namespace MultiplayerARPG
                         tempVerticalVelocity = 0f;
                 }
                 else
-                {
                     tempVerticalVelocity = 0f;
-                }
             }
             else
-            {
-                // Not falling set verical velocity to 0
                 tempVerticalVelocity = 0f;
-            }
 
+            Debug.Log(isFlying + " - " + isUnderWater + " - " + isGrounded + " - " + isJumping);
             // Jumping 
-            if ((isUnderWater || (isGrounded && !CacheOpenCharacterController.startedSlide)) && isJumping)
+            if (!isFlying && (isUnderWater || isGrounded) && isJumping)
             {
-                if (submergence <= underWaterThreshold)
+                if (!isUnderWater || submergence <= underWaterThreshold)
                 {
                     airborneElapsed = airborneDelay;
                     CacheEntity.CallAllPlayJumpAnimation();
@@ -472,11 +501,11 @@ namespace MultiplayerARPG
                     tempMoveVelocity = tempHorizontalMoveDirection * tempCurrentMoveSpeed;
                 }
             }
+
             // Updating vertical movement (Fall, WASD inputs under water)
-            if (isUnderWater)
+            if (isUnderWater || isFlying)
             {
-                tempCurrentMoveSpeed = tempEntityMoveSpeed;
-                if (submergence >= underWaterThreshold || shouldDive)
+                if (submergence >= underWaterThreshold || shouldDive || isFlying)
                 {
                     tempMoveVelocity.y = tempMoveDirection.y * tempCurrentMoveSpeed;
                     shouldDive = false;
