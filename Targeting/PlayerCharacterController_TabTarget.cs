@@ -262,7 +262,7 @@ namespace MultiplayerARPG
             if (InputManager.GetButtonDown("Jump"))
                 movementState |= MovementState.IsJump;
             PlayerCharacterEntity.KeyMovement(moveDirection, movementState);
-            
+
         }
         public Vector3 TabTargetGetMoveDirection(float horizontalInput, float verticalInput)
         {
@@ -274,18 +274,36 @@ namespace MultiplayerARPG
                     case DimensionType.Dimension3D:
                         Vector3 forward = CacheGameplayCamera.transform.forward;
                         Vector3 right = CacheGameplayCamera.transform.right;
+                        MovementState movementState = PlayerCharacterEntity.MovementState;
                         if (Targeting.SelectedTarget && Targeting.focusingTarget)
                         {
                             PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(Targeting.SelectedTarget.transform.position - PlayerCharacterEntity.transform.position));
                             forward = PlayerCharacterEntity.transform.forward;
                             right = PlayerCharacterEntity.transform.right;
                         }
-                        forward.y = 0f;
-                        right.y = 0f;
+                        if (!movementState.HasFlag(MovementState.IsUnderWater))
+                        {
+                            forward.y = 0f;
+                            right.y = 0f;
+                        }
+                        else
+                        {
+                            SwimRigidBodyEntityMovement swim;
+                            PlayerCharacterEntity.GetGameObject().TryGetComponent<SwimRigidBodyEntityMovement>(out swim);
+                            if (!(Targeting.SelectedTarget && Targeting.focusingTarget))
+                                PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(forward));
+                        }
                         forward.Normalize();
                         right.Normalize();
                         moveDirection += forward * verticalInput;
                         moveDirection += right * horizontalInput;
+                        if (movementState.HasFlag(MovementState.IsUnderWater))
+                        {
+                            if (InputManager.GetButton("Jump"))
+                                moveDirection += Vector3.up;
+                            else if (InputManager.GetButton("Crouch"))
+                                moveDirection += Vector3.down;
+                        }
                         // normalize input if it exceeds 1 in combined length:
                         if (moveDirection.sqrMagnitude > 1)
                             moveDirection.Normalize();
@@ -297,8 +315,6 @@ namespace MultiplayerARPG
             }
             return moveDirection;
         }
-
-
 
         protected virtual void PickUpItem()
         {
