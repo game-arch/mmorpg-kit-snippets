@@ -284,22 +284,10 @@ namespace MultiplayerARPG
 
                         SwimRigidBodyEntityMovement rigid;
                         PlayerCharacterEntity.GetGameObject().TryGetComponent<SwimRigidBodyEntityMovement>(out rigid);
-                        if (!(bool)rigid?.IsUnderWater && !(bool)rigid?.IsFlying)
-                        {
-                            forward.y = 0f;
-                            right.y = 0f;
-                        }
                         forward.Normalize();
                         right.Normalize();
                         moveDirection += forward * verticalInput;
                         moveDirection += right * horizontalInput;
-                        if ((bool)rigid?.IsUnderWater || (bool)rigid?.IsFlying)
-                        {
-                            if (InputManager.GetButton("Jump"))
-                                moveDirection += Vector3.up;
-                            else if (InputManager.GetButton("Crouch"))
-                                moveDirection += Vector3.down;
-                        }
                         // normalize input if it exceeds 1 in combined length:
                         if (moveDirection.sqrMagnitude > 1)
                             moveDirection.Normalize();

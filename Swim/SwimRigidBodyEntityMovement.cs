@@ -407,6 +407,15 @@ namespace MultiplayerARPG
             if (tempInputDirection.sqrMagnitude > 0f)
             {
                 tempMoveDirection = tempInputDirection;
+                if (!IsUnderWater && !IsFlying)
+                    tempMoveDirection.y = 0f;
+                else
+                {
+                    if (InputManager.GetButton("Jump"))
+                        tempMoveDirection += Vector3.up;
+                    else if (InputManager.GetButton("Crouch"))
+                        tempMoveDirection += Vector3.down;
+                }
                 tempMoveDirection.Normalize();
             }
 
@@ -438,7 +447,6 @@ namespace MultiplayerARPG
             else
                 tempVerticalVelocity = 0f;
 
-            Debug.Log(isFlying + " - " + isUnderWater + " - " + isGrounded + " - " + isJumping);
             // Jumping 
             if (!isFlying && (isUnderWater || isGrounded) && isJumping)
             {
