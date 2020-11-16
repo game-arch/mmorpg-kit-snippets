@@ -261,6 +261,7 @@ namespace MultiplayerARPG
             MovementState movementState = MovementState.Forward;
             if (InputManager.GetButtonDown("Jump"))
                 movementState |= MovementState.IsJump;
+
             PlayerCharacterEntity.KeyMovement(moveDirection, movementState);
 
         }
@@ -282,8 +283,28 @@ namespace MultiplayerARPG
                             right = PlayerCharacterEntity.transform.right;
                         }
 
+
                         SwimRigidBodyEntityMovement rigid;
-                        PlayerCharacterEntity.GetGameObject().TryGetComponent<SwimRigidBodyEntityMovement>(out rigid);
+                        IVehicleEntity entity = PlayerCharacterEntity.PassengingVehicleEntity;
+                        GameObject movingObject = PlayerCharacterEntity.GetGameObject();
+                        if (entity?.GetPassenger(0) == PlayerCharacterEntity)
+                            movingObject = entity.GetGameObject();
+                        movingObject.TryGetComponent<SwimRigidBodyEntityMovement>(out rigid);
+                        if (rigid != null)
+                        {
+                            if (!rigid.IsUnderWater && !rigid.IsFlying)
+                            {
+                                forward.y = 0f;
+                                right.y = 0f;
+                            }
+                            else
+                            {
+                                if (InputManager.GetButton("Jump"))
+                                    moveDirection += Vector3.up;
+                                else if (InputManager.GetButton("Crouch"))
+                                    moveDirection += Vector3.down;
+                            }
+                        }
                         forward.Normalize();
                         right.Normalize();
                         moveDirection += forward * verticalInput;
