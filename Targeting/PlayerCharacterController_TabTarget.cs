@@ -290,8 +290,6 @@ namespace MultiplayerARPG
                         {
                             SwimRigidBodyEntityMovement swim;
                             PlayerCharacterEntity.GetGameObject().TryGetComponent<SwimRigidBodyEntityMovement>(out swim);
-                            if (!(Targeting.SelectedTarget && Targeting.focusingTarget))
-                                PlayerCharacterEntity.SetLookRotation(Quaternion.LookRotation(forward));
                         }
                         forward.Normalize();
                         right.Normalize();
