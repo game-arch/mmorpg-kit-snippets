@@ -92,7 +92,6 @@ GameObject:
   - component: {fileID: 4935332736377774345}
   - component: {fileID: 7790209541180999948}
   - component: {fileID: 8674086734189024986}
-  - component: {fileID: 5952934008832131958}
   m_Layer: 0
   m_Name: ContextMenuItem
   m_TagString: Untagged
@@ -227,16 +226,3 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &5952934008832131958
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5422732495145290498}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7249566c748e5364480bb8a1d14a33d9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  text: {fileID: 6256258173756994024}

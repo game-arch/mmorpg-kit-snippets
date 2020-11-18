@@ -315,7 +315,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 114987847931839752}
-        m_TargetAssemblyTypeName: 
+        m_TargetAssemblyTypeName: MultiplayerARPG.UICharacterItem, Assembly-CSharp
         m_MethodName: OnClickSelect
         m_Mode: 1
         m_Arguments:
@@ -546,12 +546,12 @@ MonoBehaviour:
   player: {fileID: 0}
   uiCharacterItem: {fileID: 114987847931839752}
   uiCharacterSkill: {fileID: 0}
-  menuItems:
-  - id: test
-    text: It Works!
-    OnClick:
-      m_PersistentCalls:
-        m_Calls: []
+  itemMenu: {fileID: 8947249024804610349, guid: ae477e76e46979543b24e2407a634357,
+    type: 3}
+  skillMenu: {fileID: 0}
+  playerMenu: {fileID: 0}
+  npcMenu: {fileID: 0}
+  monsterMenu: {fileID: 0}
 --- !u!1 &1469840176515954
 GameObject:
   m_ObjectHideFlags: 0

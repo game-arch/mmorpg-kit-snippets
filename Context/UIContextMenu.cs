@@ -6,7 +6,7 @@ using UnityEngine.EventSystems;
 
 namespace Context
 {
-    public class UIContextMenu : MonoBehaviour, IPointerDownHandler
+    public class UIContextMenu : MonoBehaviour, IPointerUpHandler
     {
 
         public MonsterCharacterEntity monster;
@@ -15,34 +15,62 @@ namespace Context
         public UICharacterItem uiCharacterItem;
         public UICharacterSkill uiCharacterSkill;
 
+        public ItemContextMenu itemMenu;
+        public SkillContextMenu skillMenu;
+        public PlayerContextMenu playerMenu;
+        public NPCContextMenu npcMenu;
+        public MonsterContextMenu monsterMenu;
 
-        public ContextMenuItemData[] menuItems;
+        // Update is called once per frame
 
 
-
-
-        public void OnPointerDown(PointerEventData eventData)
+        public void OnPointerUp(PointerEventData eventData)
         {
-            if (Input.GetMouseButtonDown(1))
+            if (Input.GetMouseButtonUp(1))
                 OpenMenu();
         }
-
-        bool HasMatchingComponent<T>(GameObject go, T matcher)
+        public void OnMouseOver()
         {
-            if (matcher == null)
-                return false;
-            T found = go.GetComponent<T>();
-            if (found == null)
-                found = go.GetComponentInParent<T>();
-            if (found != null)
-                return found.Equals(matcher) || matcher.Equals(go.GetComponentInParent<T>());
-            return false;
+            if (Input.GetMouseButtonUp(1))
+                OpenMenu();
         }
 
         void OpenMenu()
         {
-            Debug.Log("Open Menu!");
-            ContextConfig.Singleton.CreateMenu(menuItems);
+            if (itemMenu != null && uiCharacterItem != null)
+            {
+                ItemContextMenu menu = Instantiate(itemMenu);
+                menu.item = uiCharacterItem;
+                ContextConfig.Singleton.CreateMenu(menu.gameObject);
+            }
+            
+            if (skillMenu != null && uiCharacterSkill != null)
+            {
+                SkillContextMenu menu = Instantiate(skillMenu);
+                menu.skill = uiCharacterSkill;
+                ContextConfig.Singleton.CreateMenu(menu.gameObject);
+            }
+            
+            if (playerMenu != null && player != null)
+            {
+                PlayerContextMenu menu = Instantiate(playerMenu);
+                menu.player = player;
+                ContextConfig.Singleton.CreateMenu(menu.gameObject);
+            }
+            
+            if (npcMenu != null && npc != null)
+            {
+                NPCContextMenu menu = Instantiate(npcMenu);
+                menu.npc = npc;
+                ContextConfig.Singleton.CreateMenu(menu.gameObject);
+            }
+            
+            if (monsterMenu != null && monster != null)
+            {
+                MonsterContextMenu menu = Instantiate(monsterMenu);
+                menu.monster = monster;
+                ContextConfig.Singleton.CreateMenu(menu.gameObject);
+            }
         }
     }
 }

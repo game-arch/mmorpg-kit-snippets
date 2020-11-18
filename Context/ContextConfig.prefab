@@ -11,9 +11,7 @@ GameObject:
   - component: {fileID: 6022823646682684926}
   - component: {fileID: 1143457916440879865}
   - component: {fileID: 429366494723378818}
-  - component: {fileID: 6027100458401938850}
   - component: {fileID: 7136135920393284615}
-  - component: {fileID: 3201129835108615288}
   m_Layer: 0
   m_Name: ContextMenu
   m_TagString: Untagged
@@ -38,7 +36,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 120, y: 32}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1143457916440879865
 MonoBehaviour:
@@ -74,36 +72,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7502865124128805085}
   m_CullTransparentMesh: 0
---- !u!114 &6027100458401938850
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7502865124128805085}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!114 &7136135920393284615
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,26 +86,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_HorizontalFit: 2
   m_VerticalFit: 2
---- !u!114 &3201129835108615288
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7502865124128805085}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_IgnoreLayout: 0
-  m_MinWidth: 120
-  m_MinHeight: 32
-  m_PreferredWidth: -1
-  m_PreferredHeight: -1
-  m_FlexibleWidth: -1
-  m_FlexibleHeight: -1
-  m_LayoutPriority: 1
 --- !u!1 &8644162046005105435
 GameObject:
   m_ObjectHideFlags: 0
@@ -182,6 +130,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e0c8a4a7bbca844a851412bc403f20a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  contextMenuItemPrefab: {fileID: 5952934008832131958, guid: 08359f862eca3ca42972046bd2cdb5f2,
-    type: 3}
   contextMenuContainer: {fileID: 6022823646682684926}

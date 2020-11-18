@@ -7,7 +7,6 @@ namespace Context
     public class ContextConfig : MonoBehaviour
     {
 
-        public ContextMenuItem contextMenuItemPrefab;
         public Transform contextMenuContainer;
 
         public static ContextConfig Singleton { get; protected set; }
@@ -20,8 +19,9 @@ namespace Context
 
         void LateUpdate()
         {
-            if (HasClickedOnSomethingElse())
+            if (Input.GetMouseButtonUp(0))
                 DestroyMenu();
+
         }
 
         bool HasClickedOnSomethingElse()
@@ -29,19 +29,14 @@ namespace Context
             RaycastHit hit;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Input.GetMouseButtonDown(0) && Physics.Raycast(ray, out hit, 100f))
-                return hit.transform.gameObject.GetComponentsInParent<ContextConfig>().Length == 0;
+                return hit.transform.gameObject.GetComponentInParent<ContextConfig>() != null;
             return false;
         }
 
-        public void CreateMenu(ContextMenuItemData[] data)
+        public void CreateMenu(GameObject item)
         {
-            DestroyMenu();
-            foreach (ContextMenuItemData datum in data)
-            {
-                ContextMenuItem item = Instantiate(contextMenuItemPrefab, contextMenuContainer);
-                item.text.text = datum.text;
-                item.data = datum;
-            }
+            contextMenuContainer.RemoveChildren();
+            item.transform.SetParent(contextMenuContainer);
             RectTransform rect = contextMenuContainer.GetComponent<RectTransform>();
             float x = Input.mousePosition.x;
             float y = Input.mousePosition.y;
@@ -62,8 +57,8 @@ namespace Context
 
         public void DestroyMenu()
         {
-            contextMenuContainer.gameObject.SetActive(false);
             contextMenuContainer.RemoveChildren();
+            contextMenuContainer.gameObject.SetActive(false);
         }
     }
 }
