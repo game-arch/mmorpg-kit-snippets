@@ -64,7 +64,6 @@ namespace Tooltips
             float screenHeight = Screen.height;
             float xPos = transform.position.x + parentHalfWidth + halfWidth;
             float yPos = transform.position.y;
-            Debug.Log(transform.position.x + " - " + halfWidth + " - " + parentHalfWidth + " - " + screenWidth);
             if (xPos + halfWidth > screenWidth)
                 xPos = transform.position.x - parentHalfWidth - halfWidth;
             if (transform.position.y + halfHeight > screenHeight)
@@ -83,7 +82,6 @@ namespace Tooltips
             {
                 if (instance is UICharacterItem && uiCharacterItem.Data.characterItem?.GetItem() != null)
                 {
-					Debug.Log(uiCharacterItem.Character);
                     UICharacterItem ui = instance as UICharacterItem;
                     ui.Setup(uiCharacterItem.Data, uiCharacterItem.Character, uiCharacterItem.IndexOfData);
                     CalculateTooltipPosition();
