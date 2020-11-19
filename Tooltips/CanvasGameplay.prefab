@@ -26,7 +26,7 @@ GameObject:
   - component: {fileID: 114460351426420406}
   - component: {fileID: 114088817493988554}
   m_Layer: 5
-  m_Name: CanvasGameplay 1
+  m_Name: CanvasGameplay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -459,6 +459,12 @@ PrefabInstance:
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
       value: MultiplayerARPG.UICharacterItem, Assembly-CSharp
       objectReference: {fileID: 0}
+    - target: {fileID: 1497322567382740008, guid: 9fa31f76a78d71d41ab4fbf8dbecc3a8,
+        type: 3}
+      propertyPath: uiCharacterSkillPrefab
+      value: 
+      objectReference: {fileID: 114857418895502152, guid: 0f3f546e485a67247a4b6476ceb0ff08,
+        type: 3}
     - target: {fileID: 1497372279103562798, guid: 9fa31f76a78d71d41ab4fbf8dbecc3a8,
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
