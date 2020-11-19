@@ -1628,6 +1628,21 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 224038833130046452}
     m_Modifications:
+    - target: {fileID: 1623271289922786505, guid: 85d2de5c51a13ac4990a475db2daf7ad,
+        type: 3}
+      propertyPath: m_Color.r
+      value: 0.87843144
+      objectReference: {fileID: 0}
+    - target: {fileID: 1623271289922786505, guid: 85d2de5c51a13ac4990a475db2daf7ad,
+        type: 3}
+      propertyPath: m_Color.g
+      value: 0.87843144
+      objectReference: {fileID: 0}
+    - target: {fileID: 1623271289922786505, guid: 85d2de5c51a13ac4990a475db2daf7ad,
+        type: 3}
+      propertyPath: m_Color.b
+      value: 0.87843144
+      objectReference: {fileID: 0}
     - target: {fileID: 6303480162208350904, guid: 85d2de5c51a13ac4990a475db2daf7ad,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -3879,6 +3894,18 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7407323345108666666, guid: d2734082a5dcd9641b178c187ab5b10e,
+        type: 3}
+      propertyPath: uiCharacterSkillPrefab
+      value: 
+      objectReference: {fileID: 114857418895502152, guid: 0f3f546e485a67247a4b6476ceb0ff08,
+        type: 3}
+    - target: {fileID: 7407323345108666666, guid: d2734082a5dcd9641b178c187ab5b10e,
+        type: 3}
+      propertyPath: uiCharacterItemPrefab
+      value: 
+      objectReference: {fileID: 114987847931839752, guid: 1a1ccaa69d4d6a24bb446f70fc3a1e42,
+        type: 3}
     - target: {fileID: 7448014715333781428, guid: d2734082a5dcd9641b178c187ab5b10e,
         type: 3}
       propertyPath: m_Name
