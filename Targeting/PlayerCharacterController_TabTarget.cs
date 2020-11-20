@@ -36,6 +36,7 @@ namespace MultiplayerARPG
                     if (!_targeting)
                     {
                         GameObject go = new GameObject();
+                        go.layer = LayerMask.NameToLayer("Ignore Raycast");
                         _targeting = go.AddComponent<TabTargeting>();
                         go.transform.SetParent(BasePlayerCharacterController.OwningCharacter.gameObject.transform);
                     }
