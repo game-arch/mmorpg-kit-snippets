@@ -162,16 +162,16 @@ public class TabTargeting : MonoBehaviour
     }
     protected virtual bool IsTargetButtonPressed()
     {
-        return Input.GetKeyDown(KeyCode.Tab) || TryGetButtonDown("Activate");
+        return InputManager.GetAxis("TargetHorizontal", true) != 0.0f || TryGetButtonDown("TargetNext") || TryGetButtonDown("TargetPrevious") || TryGetButtonDown("Target") || TryGetButtonDown("Activate");
     }
 
     protected virtual bool IsTargetNextPressed()
     {
-        return (Input.GetAxisRaw("TargetHorizontal") > 0.0f || (Input.GetKeyDown(KeyCode.Tab) && !Input.GetKey(KeyCode.LeftShift)));
+        return (InputManager.GetAxis("TargetHorizontal", true) > 0.0f || (TryGetButtonDown("TargetNext")));
     }
     protected virtual bool IsTargetPreviousPressed()
     {
-        return (Input.GetAxisRaw("TargetHorizontal") < 0.0f || (Input.GetKeyDown(KeyCode.Tab) && Input.GetKey(KeyCode.LeftShift)));
+        return (InputManager.GetAxis("TargetHorizontal", true) < 0.0f || (TryGetButtonDown("TargetPrevious")));
     }
 
     protected virtual void Start()
@@ -184,6 +184,7 @@ public class TabTargeting : MonoBehaviour
         targetRecticle = GameObject.Find("Recticle");
         targetRecticle = targetRecticle != null ? targetRecticle : Instantiate(Controller.recticle, new Vector3(0, 0, 0), Quaternion.identity);
         targetRecticle.name = "Recticle";
+        targetRecticle.layer = LayerMask.NameToLayer("CharacterUI");
         if (Controller.aimAssistTarget)
         {
             aimAssistTarget = GameObject.Find("AimAssistTarget");
@@ -269,7 +270,7 @@ public class TabTargeting : MonoBehaviour
                 m_CandidateTargets.RemoveAt(i);
             }
         }
-        if ((selectedTarget != null || potentialTarget != null) && Input.GetKeyUp(KeyCode.Escape) && !Controller.uisOpen)
+        if ((selectedTarget != null || potentialTarget != null) && InputManager.GetButtonUp("Cancel") && !Controller.uisOpen)
         {
             if (potentialTarget != null)
                 UnHighlightPotentialTarget();
@@ -291,7 +292,7 @@ public class TabTargeting : MonoBehaviour
             }
             return;
         }
-        if (Input.GetAxisRaw("TargetHorizontal") != 0.0f)
+        if (IsTargetNextPressed() || IsTargetPreviousPressed())
         {
             if (!horizontalTargetingInUse)
             {
@@ -310,7 +311,7 @@ public class TabTargeting : MonoBehaviour
             horizontalTargetingInUse = false;
 
 
-        if (Input.GetAxisRaw("TargetVertical") != 0.0f)
+        if (InputManager.GetAxis("TargetVertical", true) != 0.0f)
         {
             if (!verticalTargetingInUse)
             {
@@ -321,7 +322,7 @@ public class TabTargeting : MonoBehaviour
                     Controller.PlayerCharacterEntity.CurrentGameManager.TryGetParty(Controller.PlayerCharacterEntity.PartyId, out tempPartyData);
                     SocialCharacterData[] members;
                     tempPartyData.GetSortedMembers(out members);
-                    PickNextTarget(GetPartyMembersInView(members), Input.GetAxisRaw("TargetVertical") > 0.0f);
+                    PickNextTarget(GetPartyMembersInView(members), InputManager.GetAxis("TargetVertical", true) > 0.0f);
                 }
                 else
                 {
@@ -404,7 +405,7 @@ public class TabTargeting : MonoBehaviour
         {
             IDamageableEntity damageable = Sorted_List[i].GetComponent<IDamageableEntity>();
             BaseGameEntity agent = Sorted_List[i].GetComponentInParent<BaseGameEntity>();
-            if (agent == null || damageable == null || damageable.IsHideOrDead())
+            if ((agent == null && damageable == null) || (bool)(damageable != null && damageable.IsHideOrDead()))
                 continue;
             Vector2 screenPosition = Camera.main.WorldToScreenPoint(Sorted_List[i].transform.position);
             // Entity is within the screen (no targeting offscreen)
@@ -420,7 +421,7 @@ public class TabTargeting : MonoBehaviour
                 }
             }
         }
-
+        Debug.Log(objectsInView.Count);
         return objectsInView;
     }
 

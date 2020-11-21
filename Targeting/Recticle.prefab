@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 478405178450322566}
   - component: {fileID: 288980176372654533}
   - component: {fileID: 1338321565776370751}
-  m_Layer: 18
+  m_Layer: 15
   m_Name: Recticle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -71,7 +71,7 @@ GameObject:
   - component: {fileID: 2549509023710959846}
   - component: {fileID: 1157511944012581754}
   - component: {fileID: 9159526623665592681}
-  m_Layer: 18
+  m_Layer: 15
   m_Name: GameObject
   m_TagString: Untagged
   m_Icon: {fileID: 0}

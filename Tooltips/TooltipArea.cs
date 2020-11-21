@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using MultiplayerARPG;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Tooltips
 {
     public class TooltipArea : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
+        Canvas canvas;
         protected UICharacterItem item;
         protected UICharacterSkill skill;
         protected UICharacterItem uiCharacterItem
@@ -34,6 +36,7 @@ namespace Tooltips
         // Start is called before the first frame update
         void OnEnable()
         {
+            canvas = FindCanvas();
             if (instance == null)
             {
                 if (TooltipConfig.Singleton?.uiItemDialog != null && uiCharacterItem != null)
@@ -54,12 +57,13 @@ namespace Tooltips
 
         void CalculateTooltipPosition()
         {
+            float scale = canvas.scaleFactor;
             RectTransform parentRect = GetComponent<RectTransform>();
             RectTransform rect = instance.GetComponent<RectTransform>();
-            float halfWidth = rect.sizeDelta.x / 2;
-            float halfHeight = rect.sizeDelta.y / 2;
-            float parentHalfWidth = parentRect.sizeDelta.x / 2;
-            float parentHalfHeight = parentRect.sizeDelta.y / 2;
+            float halfWidth = rect.rect.width / 2 * scale;
+            float halfHeight = rect.rect.height / 2 * scale;
+            float parentHalfWidth = parentRect.rect.width / 2 * scale;
+            float parentHalfHeight = parentRect.rect.height / 2 * scale;
             float screenWidth = Screen.width;
             float screenHeight = Screen.height;
             float xPos = transform.position.x + parentHalfWidth + halfWidth;
@@ -75,6 +79,11 @@ namespace Tooltips
                 instance.gameObject.SetActive(true);
 
         }
+        Canvas FindCanvas() {
+            UISceneGameplay obj = Object.FindObjectOfType<UISceneGameplay>();
+            return obj?.GetComponent<Canvas>();
+        }
+
 
         public void OnPointerEnter(PointerEventData eventData)
         {
