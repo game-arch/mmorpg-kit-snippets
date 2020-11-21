@@ -9,7 +9,7 @@ namespace Tooltips
 {
     public class TooltipArea : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        Canvas canvas;
+        static Canvas canvas;
         protected UICharacterItem item;
         protected UICharacterSkill skill;
         protected UICharacterItem uiCharacterItem
@@ -36,7 +36,6 @@ namespace Tooltips
         // Start is called before the first frame update
         void OnEnable()
         {
-            canvas = FindCanvas();
             if (instance == null)
             {
                 if (TooltipConfig.Singleton?.uiItemDialog != null && uiCharacterItem != null)
@@ -57,6 +56,8 @@ namespace Tooltips
 
         void CalculateTooltipPosition()
         {
+            if (canvas == null)
+                canvas = Object.FindObjectOfType<UISceneGameplay>()?.GetComponent<Canvas>();
             float scale = canvas.scaleFactor;
             RectTransform parentRect = GetComponent<RectTransform>();
             RectTransform rect = instance.GetComponent<RectTransform>();
@@ -78,10 +79,6 @@ namespace Tooltips
             if (!instance.gameObject.activeSelf)
                 instance.gameObject.SetActive(true);
 
-        }
-        Canvas FindCanvas() {
-            UISceneGameplay obj = Object.FindObjectOfType<UISceneGameplay>();
-            return obj?.GetComponent<Canvas>();
         }
 
 
